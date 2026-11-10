@@ -1,0 +1,1365 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>autobuild 공방</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@2.39.3/dist/galmuri.css">
+<link rel="stylesheet" href="rooms/room.css">
+<link rel="stylesheet" href="rooms/pix.css">
+<style>
+:root{--bg:#16121c;--panel:#211b2a;--panel2:#2a2235;--line:#3a2f48;--ink:#f4ecdc;--sub:#b9adc9;--dim:#83789a;
+  --accent:#ffcf5a;--green:#5fe38a;--red:#ff6b6b;--blue:#7cc4ff;--pink:#ff9fc4;--outline:#2b2233;--muted:#b9adc9}
+html,body{height:100%}
+body{display:block;padding:0;min-height:100vh;font-size:13px;overflow-x:hidden}
+button,select,textarea,input{font-family:var(--font);color:inherit}
+.px{image-rendering:pixelated}
+
+/* ── 상단 바 ── */
+.top{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:12px;padding:10px 18px;background:rgba(22,18,28,.92);
+  backdrop-filter:blur(6px);border-bottom:2px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-size:15px;letter-spacing:.5px}
+.brand i{width:12px;height:12px;background:var(--accent);box-shadow:4px 4px 0 #b9862a}
+.top select{background:var(--panel);border:2px solid var(--line);padding:5px 8px;font-size:12px;cursor:pointer}
+.livepill{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);border:2px solid var(--line);padding:4px 8px;background:var(--panel)}
+.livepill b{width:8px;height:8px;background:var(--dim)}
+.msg.canceled .tx{text-decoration:line-through;opacity:.55}
+.usage.warn{color:#ffd88a}.usage.bad{color:#ff9d9d;box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px #b04848}
+.livepill.on{color:#9ff3bd;border-color:#2f6b45}.livepill.on b{background:var(--green);animation:blink 1s steps(2) infinite}
+.phases{display:flex;gap:2px}
+.phases button{background:var(--panel);border:2px solid var(--line);padding:4px 8px;font-size:11px;color:var(--dim);cursor:pointer}
+.phases button.done{color:var(--sub);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.25)}
+.phases button.cur{background:var(--accent);border-color:var(--accent);color:#2b2233}
+.phases button:hover{border-color:var(--accent)}
+.top .sp{flex:1}
+.tbtn{background:var(--panel);border:2px solid var(--line);padding:5px 10px;font-size:12px;cursor:pointer;text-decoration:none;color:var(--ink)}
+.tbtn:hover{border-color:var(--accent)}
+.tbtn.hi{background:var(--accent);border-color:var(--accent);color:#2b2233}
+.clock{font-size:12px;color:var(--dim)}
+@media (max-width:1560px){.clock{display:none}.phases button{padding:4px 6px}}
+
+/* ── 본문 ── */
+.layout > *{min-width:0}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;padding:14px 18px 24px;max-width:1760px;margin:0 auto}
+.stagebar{display:flex;align-items:flex-end;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+.stagebar h1{margin:0;font-size:20px}
+.stagebar .sum{color:var(--sub);font-size:12px;line-height:1.5;margin-top:4px;max-width:720px;overflow-wrap:anywhere}
+.kpis{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.kpi{background:var(--panel);border:2px solid var(--line);padding:5px 9px;font-size:12px;cursor:pointer;display:flex;gap:6px;align-items:center}
+.kpi:hover{border-color:var(--accent)}
+.kpi b{color:var(--ink)}.kpi span{color:var(--sub)}
+.kpi.warn{border-color:#7a3a3a}.kpi.warn b{color:var(--red)}
+.kpi.req b{color:var(--pink)}
+
+.officewrap{position:relative}
+.sz-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:8px 0}
+.sz-grid button{text-align:left;padding:10px;border:2px solid var(--line);border-radius:10px;background:var(--panel);cursor:pointer;color:var(--ink);font:inherit}
+.sz-grid button.on{border-color:var(--accent)}.sz-grid b{font-size:16px}.sz-grid small{display:block;color:var(--sub);font-size:11.5px;margin-top:3px}
+.sz-grid .fit{float:right;font-size:11px;color:var(--dim)}
+.gauge{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:4px 0 10px}.gauge i{display:block;height:100%;background:var(--accent)}
+.gauge.warn i{background:#ff7b7b}
+.feat{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.feat input{margin-top:3px;width:18px;height:18px;cursor:pointer}.feat small{display:block;color:var(--sub);font-size:11.5px}
+.cpcard{margin:10px 0 12px;padding:14px 16px;border:2px solid var(--accent);border-radius:12px;background:var(--panel2)}
+.cpcard h3{margin:0 0 6px;font-size:15px;color:var(--accent)}
+.cpcard .q{font-size:17px;margin:0 0 8px;color:var(--ink)}
+.cpcard .body{white-space:pre-wrap;color:var(--sub);font-size:12.5px;margin:0 0 10px}
+.cpcard .imgs{display:flex;gap:8px;overflow-x:auto;margin:0 0 10px}
+.cpcard .imgs img{max-height:260px;max-width:100%;border-radius:8px;border:1px solid var(--line);cursor:zoom-in}
+.cpcard .opts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 8px}
+.cpcard .opts button{padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;font-size:13px}
+.cpcard .opts button.on{border-color:var(--accent);background:#3a3020}
+.cpcard .opts button .d{color:var(--dim);font-size:11px;margin-left:4px}
+.cpcard textarea{width:100%;box-sizing:border-box;min-height:52px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}
+.cpcard .go{margin-top:8px;padding:9px 16px;border-radius:8px;border:0;background:var(--accent);color:#1a1408;font-weight:700;cursor:pointer}
+.cpcard .done{color:var(--green);font-size:13px}
+#scene{max-width:none;border:4px solid var(--outline);box-shadow:0 0 0 2px var(--line),0 12px 30px rgba(0,0,0,.45)}
+#card{display:none!important}
+#hint{top:auto;bottom:2%}
+
+/* 사무실 위에 열리는 패널 */
+.sheet{position:absolute;top:6px;right:6px;bottom:6px;width:min(420px,62%);background:#fff8e8;color:#2b2233;border:4px solid var(--outline);
+  box-shadow:6px 6px 0 rgba(0,0,0,.45);z-index:40;display:flex;flex-direction:column;transform:translateX(16px);opacity:0;pointer-events:none;transition:.16s}
+.sheet.on{transform:none;opacity:1;pointer-events:auto}
+.sheet .hd{display:flex;align-items:flex-start;gap:10px;padding:12px 14px 8px;border-bottom:2px dashed #d8c8a8}
+.sheet .hd img{width:42px;height:42px;image-rendering:pixelated;background:#f0e2c4;border:2px solid var(--outline)}
+.sheet h2{margin:0;font-size:16px}
+.sheet .sub{font-size:11px;color:#7a6a8f;margin-top:3px}
+.sheet .x{margin-left:auto;background:none;border:none;font-size:18px;cursor:pointer;color:#2b2233;padding:0 2px}
+.sheet .bd{padding:10px 14px 16px;overflow:auto;font-size:12.5px;line-height:1.7;flex:1}
+.sheet p{margin:.4em 0}.sheet ul{margin:.3em 0;padding-left:1.2em}
+.sheet code,.sheet pre{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;background:#2b2233;color:#b8f5c8}
+.sheet code{padding:0 4px}.sheet pre{padding:8px 10px;white-space:pre-wrap;margin:.5em 0;word-break:break-word}
+.sheet .tag{display:inline-block;font-size:11px;border:2px solid #2b2233;padding:0 5px;margin:0 4px 4px 0;background:#fff}
+.sheet .sw{display:inline-block;width:24px;height:24px;border:2px solid #2b2233;margin:2px;vertical-align:middle}
+.sheet .live{background:#e9fff0;border:2px dashed #3aa865;padding:6px 8px;margin-top:10px;font-size:12px}
+.sheet .meter{height:10px;border:2px solid #2b2233;background:#fff;margin:4px 0 8px}.sheet .meter i{display:block;height:100%;background:#ff6b6b}
+.sheet h3{font-size:12px;margin:14px 0 6px;color:#7a6a8f}
+.sheet .row{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px dotted #d8c8a8}
+.sheet .row:last-child{border-bottom:none}
+.sheet .row .ic{flex:none;width:18px;text-align:center}
+.sheet .row .m{font-size:11px;color:#7a6a8f}
+.sheet .chip{display:inline-block;font-size:10.5px;border:1.5px solid #2b2233;padding:0 4px;margin-right:4px;background:#fff}
+.sheet .btnrow{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.sheet .btnrow button,.sheet .sbtn{background:#fff;border:2px solid #2b2233;padding:4px 8px;font-size:12px;cursor:pointer;color:#2b2233}
+.sheet .btnrow button:hover,.sheet .sbtn:hover{background:var(--accent)}
+.sheet .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.sheet .grid figure{margin:0;cursor:pointer;border:2px solid #2b2233;background:#2b2233}
+.sheet .grid img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#111}
+.sheet .grid figcaption{font-size:10.5px;color:#f4ecdc;padding:3px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet .stp{display:flex;gap:8px;padding:5px 0}
+.sheet .stp i{flex:none;width:12px;height:12px;border:2px solid #2b2233;margin-top:3px;background:#fff}
+.sheet .stp.done i{background:#5cb85c}.sheet .stp.cur i{background:var(--accent);animation:blink 1s steps(2) infinite}
+.sheet .stp.cur b{color:#b06a00}
+.sheet textarea{width:100%;min-height:70px;resize:vertical;border:2px solid #2b2233;padding:6px 8px;font-size:12.5px;background:#fff;color:#2b2233}
+.sheet .rep{border:2px solid #2b2233;background:#fff;padding:8px 10px;margin:8px 0;box-shadow:3px 3px 0 rgba(0,0,0,.15)}
+.sheet .rep.unread{border-color:#e0457b;box-shadow:3px 3px 0 #ffb3c7}
+.sheet .rep .rh{display:flex;gap:6px;align-items:center;font-size:12px}.sheet .rep .rh .m{margin-left:auto;font-size:10.5px;color:#7a6a8f}
+.sheet .rep .hl{font-size:13.5px;margin:4px 0 2px;line-height:1.5}
+.sheet .rep .bar{height:8px;background:#efe6d6;border:1px solid #2b2233;margin:4px 0}.sheet .rep .bar i{display:block;height:100%;background:#5bbf8a}
+.sheet .rep ul{margin:2px 0 0;padding-left:1.1em;font-size:12px;line-height:1.6;color:#4a3f5e}
+.msg.report .tx{border-color:var(--accent);background:#2f2a1e}
+.msg.report .tx b{color:var(--accent)}
+.st-new{color:#c0392b}.st-sent{color:#b06a00}.st-done{color:#2e8b57}
+
+/* 토스트 */
+.toast{position:absolute;left:10px;top:10px;z-index:45;background:#2b2233;color:var(--ink);border:2px solid var(--accent);padding:8px 10px;
+  display:flex;gap:10px;align-items:center;font-size:12px;box-shadow:4px 4px 0 rgba(0,0,0,.4);max-width:70%;opacity:0;transform:translateY(-6px);transition:.2s;pointer-events:none}
+.toast.on{opacity:1;transform:none;pointer-events:auto}
+.toast img{width:64px;height:40px;object-fit:cover;border:2px solid #000}
+.toast button{background:var(--accent);border:none;color:#2b2233;padding:4px 8px;cursor:pointer;font-size:12px}
+
+/* 다음 할 일 + 스크린샷 필름 */
+.nextline{margin:0 0 10px;background:var(--panel);border:2px solid var(--line);padding:8px 12px;font-size:12px;color:var(--sub);line-height:1.6;cursor:pointer}
+.nextline b{color:var(--accent);margin-right:6px}
+.empty{color:var(--dim);font-size:12px;padding:14px;text-align:center}
+
+/* ── 채팅 ── */
+.chat{position:sticky;top:64px;height:calc(100vh - 80px);display:flex;flex-direction:column;background:var(--panel);border:2px solid var(--line);min-height:420px}
+.tabs{display:flex;border-bottom:2px solid var(--line)}
+.tabs button{flex:1;background:none;border:none;padding:9px 4px;font-size:12px;color:var(--dim);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs button small{color:var(--dim);margin-left:3px}
+.who-filter{display:flex;align-items:center;gap:6px;padding:6px 10px;font-size:11px;color:var(--sub);border-bottom:1px solid var(--line);background:var(--panel2)}
+.who-filter button{margin-left:auto;background:none;border:1.5px solid var(--line);padding:1px 6px;font-size:11px;cursor:pointer}
+.list{flex:1;overflow-y:auto;padding:10px 10px 4px;scrollbar-color:var(--line) transparent}
+.msg{display:flex;gap:8px;padding:6px 4px;border-radius:2px;cursor:pointer}
+.msg:hover{background:rgba(255,255,255,.04)}
+.msg .av{flex:none;width:34px;height:34px;image-rendering:pixelated;background:#3a3048;border:2px solid var(--outline)}
+.msg .em{flex:none;width:34px;height:34px;display:grid;place-items:center;background:#3a3048;font-size:18px}
+.msg .hd{display:flex;gap:6px;align-items:baseline;font-size:11px;color:var(--dim);flex-wrap:wrap}
+.msg .hd b{font-size:12px;color:var(--c,var(--ink))}
+.msg .hd .t{margin-left:auto}
+.msg .tx{background:var(--panel2);border:2px solid #382d45;padding:5px 8px;margin-top:3px;font-size:12.5px;line-height:1.55;word-break:break-word;color:var(--ink)}
+.msg.event .tx{border-style:dashed;color:var(--sub)}
+.msg.aside .tx{border-color:#5a4a2a}
+.msg .orig{font-size:10.5px;color:var(--dim);margin-top:3px;display:none;white-space:pre-wrap;line-height:1.5}
+.msg.open .orig{display:block}
+.msg .ot{font-size:10.5px;color:var(--dim);background:none;border:none;padding:2px 0 0;cursor:pointer}
+.msg.me{flex-direction:row-reverse}
+.msg.me .tx{background:#3a2a3a;border-color:var(--pink)}
+.msg.me .hd{flex-direction:row-reverse}.msg.me .hd .t{margin-left:0;margin-right:auto}
+.msg .stc{font-size:10.5px;margin-top:3px}
+.msg.me > div{display:flex;flex-direction:column;align-items:flex-end;max-width:85%}
+.msg .shotref{display:block;margin-top:4px;width:120px;border:2px solid #000}
+.list code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:#15111b;color:#b8f5c8;padding:0 3px}
+.typing{font-size:11px;color:var(--dim);padding:6px 10px}
+.msg.lead .tx{white-space:pre-wrap;background:#1f2a24;border-color:#2f6b45}
+.sysline{font-size:11px;color:var(--dim);text-align:center;padding:6px 0}
+.mode{background:var(--panel);border:2px solid var(--line);padding:5px 10px;font-size:12px;cursor:pointer;color:var(--ink)}
+.mode.on{background:#2f6b45;border-color:#7be0a4;color:#eafff1}
+.log{font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.7}
+.log div{display:flex;gap:8px;border-bottom:1px dotted #33293f;padding:1px 0}
+.log span:first-child{color:var(--dim);flex:none}.log .w{color:var(--accent);flex:none;min-width:70px}
+.log .x{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.log .ok{color:#9ff3bd}.log .bad{color:var(--red)}.log .warn{color:var(--accent)}
+.compose{border-top:2px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:6px;background:var(--panel2)}
+.compose .lb{font-size:11px;color:var(--sub);display:flex;gap:6px;align-items:center}
+.compose .lb img{width:40px;height:25px;object-fit:cover;border:1.5px solid #000}
+.compose .lb button{margin-left:auto;background:none;border:1.5px solid var(--line);font-size:10.5px;padding:1px 5px;cursor:pointer}
+.compose .in{display:flex;gap:6px}
+.compose textarea{flex:1;min-height:38px;max-height:120px;resize:vertical;background:#15111b;border:2px solid var(--line);padding:6px 8px;font-size:12.5px;color:var(--ink)}
+.compose textarea:focus{outline:none;border-color:var(--pink)}
+.compose .send{background:var(--pink);border:none;color:#2b2233;padding:0 12px;cursor:pointer;font-size:12px}
+.compose .send:disabled{opacity:.5;cursor:default}
+.compose .quick{display:flex;flex-direction:column;gap:5px;max-height:38vh;overflow:auto}
+.compose .quick .qrow{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.compose .quick .qn{font-size:11px;color:var(--accent);min-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compose .quick button{background:#15111b;border:1.5px solid var(--line);color:var(--ink);font-size:11.5px;padding:4px 8px;cursor:pointer;max-width:100%;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compose .quick button.on{background:var(--pink);color:#2b2233;border-color:var(--pink)}
+.compose .quick button i{font-style:normal;opacity:.7}
+.compose .clip{background:none;border:2px solid var(--line);color:var(--ink);padding:0 8px;cursor:pointer;font-size:15px}
+.compose.drag{outline:2px dashed var(--pink);outline-offset:-4px}
+.compose .att{display:flex;flex-wrap:wrap;gap:6px}
+.compose .att span{display:flex;align-items:center;gap:4px;border:1.5px solid var(--line);padding:2px 4px;font-size:11px;color:var(--sub);max-width:180px}
+.compose .att img{width:40px;height:30px;object-fit:cover;border:1px solid #000}
+.compose .att b{font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compose .att button{background:none;border:none;color:var(--sub);cursor:pointer;padding:0 2px}
+.msg .atts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:flex-start;justify-content:flex-end}
+.msg .atts img{max-width:140px;max-height:110px;border:2px solid #000;cursor:zoom-in}
+.msg .atts span{font-size:11px;border:1.5px solid var(--line);padding:2px 6px}
+
+/* ── 스크린샷 뷰어 ── */
+
+@media (max-width:1180px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .chat{position:relative;top:0;height:560px}
+}
+@media (max-width:640px){
+  .top{padding:8px 12px;gap:8px}.phases{display:none}.layout{padding:10px 12px}
+  .sheet{width:auto;left:6px}.stagebar h1{font-size:16px}
+}
+
+/* ══ v0.16 1인 공방 테마: 밤 공방 남색 + 스탠드 호박색, 계단식 픽셀 테두리 ══ */
+:root{--bg:#121027;--panel:#1d1a38;--panel2:#262247;--line:#3b3566;--ink:#f6efe0;--sub:#beb5da;--dim:#8a82ad;
+  --accent:#ffc95c;--accent2:#ff8f6b;--green:#6ee7a8;--red:#ff7a7a;--blue:#8cc8ff;--pink:#ff9fc4;--outline:#0b0918;--muted:#beb5da;
+  --pxb:0 0 0 2px var(--outline),inset 0 0 0 2px var(--line),inset 2px 2px 0 2px rgba(255,255,255,.04);
+  --pxs:4px 4px 0 0 rgba(0,0,0,.35)}
+body{background:var(--bg);background-image:radial-gradient(rgba(255,201,92,.06) 1px,transparent 1px),radial-gradient(rgba(140,200,255,.05) 1px,transparent 1px);
+  background-size:24px 24px,37px 37px;background-position:0 0,11px 17px}
+.top{background:rgba(18,16,39,.94);border-bottom:none;box-shadow:0 2px 0 var(--outline),0 4px 0 var(--line)}
+.brand{font-size:16px;gap:9px}.brand small{color:var(--accent);font-size:11px;border:2px solid var(--accent);padding:0 4px;margin-left:2px}
+.brand .logo{width:16px;height:16px;background:none;box-shadow:none;position:relative;image-rendering:pixelated;
+  background:linear-gradient(var(--accent),var(--accent)) 6px 0/4px 10px no-repeat,linear-gradient(#c98b3a,#c98b3a) 2px 0/12px 4px no-repeat,linear-gradient(#8a5f3f,#8a5f3f) 7px 10px/2px 6px no-repeat}
+.tbtn,.top select,.livepill,.kpi,.phases button{border:none!important;box-shadow:var(--pxb);border-radius:0}
+.tbtn{transition:transform .05s}.tbtn:hover{box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px var(--accent)}
+.tbtn:active{transform:translate(1px,1px)}
+.tbtn.hi{background:var(--accent);color:#24180a;box-shadow:0 0 0 2px var(--outline),inset -2px -2px 0 0 #c98b3a,inset 2px 2px 0 0 #ffe3a3}
+.tbtn.arm{background:var(--accent2);color:#2a1208;box-shadow:0 0 0 2px var(--outline),inset -2px -2px 0 0 #b8553a;animation:blink 1s steps(2) infinite}
+.tbtn[disabled]{opacity:.5}
+.ctl{display:flex;gap:6px}
+.phases{gap:4px}.phases button.cur{background:var(--accent);color:#24180a;box-shadow:0 0 0 2px var(--outline),inset -2px -2px 0 0 #c98b3a}
+.livepill.on{box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px #2f7a55}
+.kpi{background:var(--panel)}.kpi:hover{box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px var(--accent)}
+.kpi.warn{box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px #8a3a4a}
+.stagebar h1{font-size:22px;text-shadow:2px 2px 0 var(--outline)}
+.officewrap{box-shadow:0 0 0 3px var(--outline),0 0 0 5px var(--line),6px 6px 0 5px rgba(0,0,0,.4);margin:4px 2px 14px}
+.cpcard{border:none;border-radius:0;box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px var(--accent),var(--pxs);background:var(--panel2)}
+.chat{box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px var(--line),var(--pxs);border:none!important;border-radius:0}
+.tabs button.on{color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+.sheet{border:none!important;border-radius:0!important;box-shadow:0 0 0 3px var(--outline),inset 0 0 0 2px var(--accent),8px 8px 0 0 rgba(0,0,0,.45)!important}
+.sheet .hd{border-bottom:2px dashed #d8c8a8}
+.toast{border-radius:0!important;box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px var(--accent),var(--pxs)!important}
+.compose textarea{border-radius:0;box-shadow:inset 0 0 0 2px var(--line);border:none}
+.compose .send,.go{border-radius:0!important;box-shadow:0 0 0 2px var(--outline),inset -2px -2px 0 0 #c98b3a,inset 2px 2px 0 0 #ffe3a3!important}
+/* 저장 지점 카드 */
+
+.tbtn.live{padding:3px 8px;font-size:11.5px}
+.sv{display:flex;gap:10px;padding:10px 0;border-bottom:2px dashed #d8c8a8}
+.sv-n{flex:0 0 34px;height:34px;display:flex;align-items:center;justify-content:center;background:#f1e4c8;box-shadow:0 0 0 2px #2b2233;font-size:12px;color:#2b2233}
+.sv.cur .sv-n{background:var(--accent);color:#24180a}.sv.cur{background:linear-gradient(90deg,rgba(255,201,92,.18),transparent)}
+.sv-b{flex:1;min-width:0}.sv-h{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.sv-h span{color:#7a6a8f;font-size:11.5px}
+.sv-h .chip{color:#2b2233;background:#f1e4c8;padding:1px 5px;box-shadow:inset 0 0 0 1px #c9b48c}
+.sv-q{margin:4px 0;color:#4a3a5a;font-size:12.5px}
+.sv-pics{display:flex;gap:6px;margin:6px 0}.sv-pics img{width:31%;max-height:90px;object-fit:cover;object-position:top;box-shadow:0 0 0 2px var(--outline);cursor:zoom-in;image-rendering:auto}
+.sv-made{font-size:12px;color:#3a2e48}.sv-made>span{color:#7a6a8f;font-size:11px}.sv-made ul{margin:4px 0 4px 16px;padding:0}
+.sv-files{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}.sv-files code{font-size:10.5px;background:#2b2233;padding:1px 4px;color:#9ff3bd}
+.sv-act{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.sv-now{font-size:12px;color:#b07a10;padding:5px 0;font-weight:700}
+.sheet .tbtn{background:#f1e4c8;color:#2b2233;box-shadow:0 0 0 2px #2b2233,inset -2px -2px 0 0 #c9b48c}.sheet .tbtn.arm{background:var(--accent2);color:#2a1208}
+@media (max-width:700px){.ctl .tbtn{padding:5px 7px}.brand small{display:none}}
+
+/* ══ v0.23 대화가 메인: 왼쪽 큰 대화창, 오른쪽 미리보기 + 작은 사무실 ══ */
+.layout{grid-template-columns:minmax(0,1fr) minmax(360px,42%)}
+.side{min-width:0}
+.chat{height:calc(100vh - 80px)}
+.sess{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:2px solid var(--line);background:var(--panel2);font-size:12px;flex-wrap:wrap}
+.sess .dot{width:9px;height:9px;background:var(--dim);flex:none}.sess .dot.on{background:var(--green)}.sess .dot.busy{background:var(--accent);animation:blink 1s steps(2) infinite}
+.sess .tbtn{padding:3px 8px;font-size:11.5px}.sess .gap{margin-left:auto}
+.sess .ctx{font-size:11px;color:var(--dim)}.sess .ctx.warn{color:var(--accent)}
+.pv{background:var(--panel);margin-bottom:12px;box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px var(--line)}
+.pv .hd{display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:12px}.pv .hd b{margin-right:auto}
+.pv .tbtn{padding:3px 8px;font-size:11.5px}
+.pv iframe{display:block;width:100%;height:min(50vh,560px);border:0;background:#fff}
+.pv .pv-empty{padding:16px;color:var(--dim);font-size:12px}
+.pv.remote .pvbox,.pv.remote iframe,.pv.remote #pvReload,.pv.remote #pvOpen{display:none}
+.officewrap{max-width:520px;margin:4px auto 14px}
+.sheet{position:fixed;top:64px;right:16px;bottom:16px;width:min(460px,calc(100vw - 32px));z-index:60}
+.toast{position:fixed;left:auto;right:16px;top:64px;z-index:70;max-width:min(420px,calc(100vw - 32px))}
+.msg.cv{cursor:default}.msg.cv:hover{background:none}
+.msg.cv .tx{font-size:13.5px;line-height:1.65;white-space:pre-wrap}
+.msg.me > div{max-width:88%}
+.msg .tx pre.cb{background:#15111b;color:#d8f5df;padding:8px 10px;margin:6px 0;overflow-x:auto;white-space:pre;font:11.5px/1.5 ui-monospace,Menlo,monospace}
+details.tools{margin:0 0 4px 46px;font-size:11.5px;color:var(--sub)}
+details.tools summary{cursor:pointer;padding:3px 8px;border:1.5px dashed var(--line);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.tools .tl{font-family:ui-monospace,Menlo,monospace;font-size:11px;padding:1px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+details.tools .tl.err{color:var(--red)}
+details.startnote{margin:6px 0;font-size:11.5px;color:var(--dim)}details.startnote summary{cursor:pointer;text-align:center}
+details.startnote > div{white-space:pre-wrap;background:var(--panel2);padding:8px;margin-top:4px;max-height:240px;overflow:auto}
+.msg.pending .tx{opacity:.75;border-style:dashed}
+.msg .tx .tb{overflow-x:auto;margin:4px 0;white-space:normal}.msg .tx table{border-collapse:collapse;font-size:12px}.msg .tx th,.msg .tx td{border:1px solid #3f6b52;padding:3px 7px;text-align:left;vertical-align:top}.msg .tx th{background:#24372c}
+.compose textarea{min-height:64px}
+@media (max-width:1180px){.layout{grid-template-columns:minmax(0,1fr)}.chat{position:relative;top:0;height:78vh}.pv iframe{height:60vh}}
+
+/* v0.25 세션 이름 · 🗺️ 진행 */
+.sname{display:flex;align-items:center;gap:3px;color:var(--sub);min-width:0;max-width:50%}.sname .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rn{background:none;border:none;cursor:pointer;font-size:11px;padding:0 2px;opacity:.7}.rn:hover{opacity:1}
+.rnin{font:inherit;font-size:12px;background:#15111b;color:var(--ink);border:2px solid var(--accent);padding:2px 6px;min-width:0;width:180px;max-width:100%}
+.jr{padding:4px 2px 10px}
+.jr-ph{display:flex;align-items:stretch;gap:4px;margin:4px 0 8px}
+.jp{flex:1;min-width:0;background:var(--panel2);padding:8px 6px;text-align:center;box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px var(--line);display:flex;flex-direction:column;gap:2px;align-items:center}
+.jp .ic{font-size:18px;line-height:1.2}.jp b{font-size:13px}.jp small{font-size:10px;color:var(--dim)}.jp .n{font-size:10px;color:var(--sub);min-height:13px}
+.jp.cur{box-shadow:0 0 0 2px var(--outline),inset 0 0 0 3px var(--pc);background:#2a2547}.jp.cur b{color:var(--pc)}
+.jp.done{opacity:.7}.jp.done .ic{color:var(--pc)}
+.jp{cursor:pointer}.jp:hover{opacity:1}.jp.pick{opacity:1;background:#332c55;box-shadow:0 0 0 2px var(--outline),inset 0 0 0 3px var(--pc),0 4px 0 0 var(--pc)}
+.ja{align-self:center;color:var(--dim);font-size:16px}
+.jr-hint{font-size:12px;color:var(--sub);margin:6px 2px 10px;line-height:1.6}
+.jr-t{font-size:11px;color:var(--dim);margin:12px 2px 6px}
+.sc{background:var(--panel2);border-left:4px solid var(--pc);padding:8px 10px;margin:0 0 8px;box-shadow:0 0 0 2px var(--outline)}
+.sc.now{box-shadow:0 0 0 2px var(--outline),0 0 0 4px var(--green)}
+.sc-h{display:flex;align-items:center;gap:6px;font-size:13.5px}.sc-h .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.sc-k{color:var(--dim);font-size:11px}.sc-now{margin-left:auto;color:var(--green);font-size:11px}
+.sc-m{font-size:11px;color:var(--dim);margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.sc-ph{border:1.5px solid var(--pc);color:var(--pc);padding:0 5px;font-size:10.5px}
+.sc-st{display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--sub);margin-top:5px}.sc-st .bad{color:var(--red)}
+.sc-q{font-size:12px;margin-top:6px;color:var(--ink);background:#3a2a3a;padding:4px 8px;border-left:3px solid var(--pink)}
+.sc-f{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}.sc-f code{font-size:10.5px}
+.sc-l{margin-top:6px;font-size:11.5px;color:var(--sub)}.sc-l summary{cursor:pointer}.sc-l div{white-space:pre-wrap;margin-top:4px;font-size:12px;color:var(--ink)}
+.sc-s{margin:6px 0 0;padding-left:18px;font-size:12.5px;line-height:1.6}.sc-w{font-size:11.5px;color:var(--dim);margin-top:6px}
+/* ══ v0.26 사무실이 기능과 이어짐: 오른쪽 맨 위 공방 창, 픽셀 얼굴, 코르크 보드 같은 진행 탭 ══ */
+.officewrap{max-width:none;margin:2px 2px 14px}
+.side .stagebar{margin-top:0}
+.typing[hidden]{display:none}
+#hint{left:auto;right:1.5%;bottom:2%;transform:none;font-size:11px}
+.msg .av{background:#3a3048}
+.msg.me .av{background:#4a2f45}
+.typing{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--sub);padding:6px 10px;border-top:2px dashed var(--line);background:rgba(255,201,92,.05)}
+.typing b{color:var(--accent);font-weight:400;flex:none}
+.typing span{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-family:ui-monospace,Menlo,monospace;font-size:11px}
+.typing .tav{width:22px;height:22px;flex:none;box-shadow:0 0 0 2px var(--outline);background:#3a3048;animation:bob .5s steps(2) infinite}
+.typing .dots{display:inline-flex;gap:2px;flex:none}.typing .dots i{width:3px;height:3px;background:var(--accent);animation:blink 1.2s steps(2) infinite}
+.typing .dots i:nth-child(2){animation-delay:.4s}.typing .dots i:nth-child(3){animation-delay:.8s}
+@keyframes bob{50%{transform:translateY(-2px)}}
+.empty .bigface{width:56px;height:56px;margin-bottom:8px;box-shadow:0 0 0 3px var(--outline),0 0 0 5px var(--line);background:#3a3048;animation:bob 1.2s steps(2) infinite}
+/* 🗺️ 진행: 단계 칸 = 코르크 보드에 꽂힌 메모, 세션 카드 = 테이프 붙인 종이 */
+.jr-ph{background:#c99a64;padding:14px 10px 10px;gap:8px;box-shadow:0 0 0 2px var(--outline),inset 0 0 0 3px #8a5f3f;
+  background-image:radial-gradient(#b5864f 1px,transparent 1px);background-size:9px 9px}
+.jp{position:relative;background:#fff6dc;color:#2b2233;box-shadow:0 0 0 2px var(--outline),3px 3px 0 0 rgba(0,0,0,.3);transform:rotate(-1.2deg);padding:12px 6px 8px}
+.jp:nth-of-type(even){transform:rotate(1.1deg)}
+.jp::before{content:"";position:absolute;top:-5px;left:50%;width:8px;height:8px;margin-left:-4px;background:var(--pc);box-shadow:0 0 0 2px var(--outline)}
+.jp b{color:#2b2233}.jp .n{color:#7a6a5a}.jp .ic{color:#2b2233}
+.jp.done{opacity:.8}.jp.done .ic{color:#2e8b57}
+.jp.cur{background:#fff6dc;box-shadow:0 0 0 2px var(--outline),inset 0 -6px 0 var(--pc),3px 3px 0 0 rgba(0,0,0,.3)}.jp.cur b{color:#2b2233}
+.jp.pick{background:#fffbe9;transform:rotate(0) translateY(-3px);box-shadow:0 0 0 2px var(--outline),inset 0 -6px 0 var(--pc),0 0 0 4px var(--accent),4px 6px 0 0 rgba(0,0,0,.35)}
+.ja{display:none}
+.sc{position:relative;margin-top:14px}
+.sc::before{content:"";position:absolute;top:-7px;left:18px;width:42px;height:11px;background:rgba(255,236,170,.55);transform:rotate(-3deg);box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+@media (max-width:640px){.jp b{font-size:12px}.ja{display:none}.sname{max-width:100%;order:5;flex-basis:100%}}
+
+/* ══ v0.29 오른쪽 한 화면: 위 = 큰 픽셀 사무실, 아래 = 정보·확인 카드(왼쪽) + 작은 미리보기(오른쪽) ══ */
+@media (min-width:1181px){
+  .layout{grid-template-columns:minmax(380px,36%) minmax(0,1fr);padding-bottom:0}
+  .side{position:sticky;top:64px;height:calc(100vh - 80px);display:flex;flex-direction:column;gap:12px;overflow:hidden}
+  .side .officewrap{flex:none;width:min(calc(100% - 10px),calc((100vh - 80px) * .6 * 16 / 9));margin:3px auto 0}
+  .sidebot{flex:1;min-height:0;display:flex;gap:12px;margin:0 3px 3px}
+  .sideinfo{flex:1 1 55%;min-width:0;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:2px 3px 3px 2px;scrollbar-color:var(--line) transparent}
+  .sideinfo .stagebar{display:block;margin:0}
+  .sideinfo .stagebar h1{font-size:19px}
+  .sideinfo .kpis{margin:8px 0 0}
+  .sideinfo .nextline,.sideinfo .cpcard{margin:0}
+  .sideinfo .cpcard{padding:10px 12px}
+  .sideinfo .cpcard .q{font-size:14px}
+  .sideinfo .cpcard .imgs img{max-height:90px}
+  .side .pv{flex:1 1 45%;min-width:0;display:flex;flex-direction:column;margin:0}
+  .side .pv .pvbox{flex:1;min-height:0;position:relative;overflow:hidden;background:#fff}
+  .side .pv iframe{position:absolute;left:0;top:0;width:200%;height:200%;transform:scale(.5);transform-origin:0 0}
+  .side .pv .hd b{font-size:11.5px}
+}
+/* v0.28 세션 줄에 대화 모드 · 저장 지점 */
+.sess{flex-direction:column;align-items:stretch;gap:7px}
+.sessin{display:flex;align-items:center;gap:8px;min-width:0}
+.sessrow,#sessBtns,.sessx{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sess .sname{flex:1 1 auto;max-width:none;order:0;flex-basis:auto}
+.sess .ctx{margin-left:auto;flex:none}
+.sessin > b{white-space:nowrap;flex:none}
+.sess .sname{min-width:0}
+.sess .tbtn,.sess .mode{white-space:nowrap}
+.sess .mode{padding:3px 8px;font-size:11.5px;border:none;box-shadow:var(--pxb)}
+.sess .mode.on{box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px #7be0a4}
+/* v0.30 보낸 말 상태 · 막힌 화면 카드 */
+.msg.lost .tx{border-color:var(--red);border-style:dashed;opacity:.9}
+.msg.lost .hd .t{color:var(--red)}
+.sendact{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;margin:-2px 46px 8px 0}
+.sendact .tbtn{padding:3px 8px;font-size:11.5px}
+.blk{margin:8px 4px;background:#1a1626;box-shadow:0 0 0 2px var(--outline),inset 0 0 0 2px var(--red);padding:10px}
+.blk-h{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--sub)}.blk-h b{color:var(--red)}.blk-h .rn{margin-left:auto}
+.blk pre{margin:8px 0;max-height:220px;overflow:auto;background:#0d0b14;color:#d8f5df;padding:8px;font:11px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all}
+.blk-k,.blk-s{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--dim)}.blk-s{margin-top:8px;color:var(--sub)}
+.blk-k span{margin-right:2px}.blk-s span{flex:1;min-width:0}
+.blk .tbtn{padding:3px 9px;font-size:11.5px}
+</style>
+<script>window.AB_REMOTE={"url": "https://toqgivwknjereygrysmw.supabase.co", "anon": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcWdpdndrbmplcmV5Z3J5c213Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3Mjc3MzIsImV4cCI6MjEwNjMwMzczMn0.z-IPJaOkLdbgMH1OUkxdf2Xs_5_1wui84K3GuvCBFsw", "vapid": "BC29PmUUmM0uyPM_aU4ahTGB-9Nktp_Pfy4BnGqC7dZsry23gBH_B5U7fIPs-VTa-S2QRWqo_Dg04cMPLfWig8s"};</script>
+<script src="remote.js"></script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#16121c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="autobuild">
+</head>
+<body>
+<div class="top">
+  <div class="brand"><i class="logo"></i>autobuild<small>공방</small></div>
+  <select id="proj" aria-label="프로젝트"></select>
+  <div class="livepill" id="live"><b></b><span>-</span></div>
+  <div class="livepill usage" id="usage" hidden></div>
+  <div class="phases" id="phases"></div>
+  <div class="ctl" id="ctl"></div>
+  <div class="sp"></div>
+  <button class="tbtn hi" id="newBtn" title="아이디어 한 줄로 새 프로젝트를 만들고 빌더를 띄워요">➕ 새 프로젝트</button>
+  <button class="tbtn" data-panel="features" title="폰에서 보기·알림 연결">📱 폰 연결</button>
+  <span class="clock" id="clock"></span>
+</div>
+
+<div class="layout">
+  <aside class="chat">
+    <div class="sess"><div id="sess" class="sessin"></div><div class="sessrow"><span id="sessBtns"></span><span class="sessx">
+      <button class="mode" id="modeBtn" title="켜면 빌더가 SOLO 절차대로 완성까지 혼자 가요. 끄면 말한 만큼만 하고 기다려요">💬 대화 모드</button>
+      <select class="mode" id="modelSel" title="빌더 모델. 기본 = 대화 모드는 Claude Code 설정(~/.claude), 자동 빌드는 규모 등급. 돌고 있으면 바로 바뀌어요"><option value="default">🧠 기본</option><option value="opus">🧠 Opus</option><option value="fable">🧠 Fable</option><option value="sonnet">🧠 Sonnet</option></select>
+      <button class="tbtn" data-panel="saves" title="CHECKPOINT마다 남긴 저장 지점 · 되돌리기">⏪ 저장 지점</button>
+    </span></div></div>
+    <div class="tabs" id="tabs">
+      <button data-t="chat" class="on">💬 대화<small id="cChat"></small></button>
+      <button data-t="map">🗺️ 진행<small id="cMap"></small></button><small id="cTalk" hidden></small>
+      <button data-t="log">📜 로그<small id="cLog"></small></button>
+    </div>
+    <div class="who-filter" id="whoFilter" hidden></div>
+    <div class="list" id="list"></div>
+    <div class="typing" id="typing" hidden></div>
+    <form class="compose" id="compose">
+      <div class="lb" id="composeLb">💬 빌더에게 말하기</div>
+      <div class="quick" id="quick" hidden></div>
+      <div class="att" id="composeAtt" hidden></div>
+      <div class="in"><button type="button" class="clip" id="composeClip" title="그림·PDF 붙이기 (붙여넣기·끌어다 놓기도 돼요)" aria-label="파일 붙이기">📎</button><input type="file" id="composeFile" accept="image/*,application/pdf,.pdf" multiple hidden><textarea id="composeTx" placeholder="Claude Code에 말하듯이 적어요. 예: 시작 화면 글씨가 너무 작아. 1.5배로 키워줘" aria-label="빌더에게 말하기"></textarea><button class="send" id="composeGo">보내기</button></div>
+    </form>
+  </aside>
+
+  <section class="side">
+    <div class="officewrap" id="officeWrap">
+      <div id="officeMount"></div>
+    </div>
+    <div class="sidebot">
+      <div class="sideinfo">
+        <div class="stagebar">
+          <div><h1 id="title">-</h1><div class="sum" id="summary"></div></div>
+          <div class="kpis" id="kpis"></div>
+        </div>
+        <div class="nextline" id="nextline" hidden></div>
+        <section class="cpcard" id="sizecard" hidden></section>
+        <section class="cpcard" id="checkpoint" hidden></section>
+      </div>
+    <div class="pv" id="pv">
+      <div class="hd"><b>👀 미리보기</b><button class="tbtn" id="pvReload" type="button">↻ 새로고침</button><a class="tbtn hi" id="pvOpen" target="_blank" rel="noopener" title="지금 작업 폴더의 앱을 새 탭에서 그대로 열어요">👀 새 탭에서 열기</a></div>
+      <div class="pvbox"><iframe id="pvFrame" title="미리보기" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"></iframe></div>
+      <div class="pv-empty" id="pvEmpty" hidden>미리보기는 맥에서 열 때만 보여요. 폰에서는 맥 화면의 파일을 가져올 수 없어요.</div>
+    </div>
+    </div>
+  </section>
+</div>
+<aside class="sheet" id="sheet" aria-live="polite"><div class="hd"><span id="shIcon"></span><div><h2 id="shTitle"></h2><div class="sub" id="shSub"></div></div><button class="x" id="shX" aria-label="닫기">✕</button></div><div class="bd" id="shBody"></div></aside>
+<div class="toast" id="toast"></div>
+
+<script src="rooms/engine.js"></script>
+<script src="rooms/pixkit.js"></script>
+<script src="rooms/office.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const PH = [['PLAN', '계획'], ['BUILD', '개발'], ['VERIFY', '검증'], ['FINISH', '마무리'], ['DONE', '완료']];
+const PH_WHO = { PLAN: '나', BUILD: '나', VERIFY: '빌더', FINISH: '빌더' };
+const PH_IC = { PLAN: '📝', BUILD: '🛠️', VERIFY: '🔍', FINISH: '🎁', DONE: '🏁' };
+const normPh = p => ({ KICKOFF: 'PLAN', SLICE: 'BUILD', EXPAND: 'BUILD' })[(p || '').toUpperCase()] || (p || '').toUpperCase();
+const JOB = { lead: '빌더 · 기획부터 마무리까지', scout: '🔎 조사 보조 · haiku · 일회용', checker: '🧪 검토 보조 · sonnet · 일회용', worker: '🔁 반복 작업 보조 · sonnet · 일회용',
+  'worker-1': '🔁 반복 작업 보조 · sonnet · 일회용', 'worker-2': '🔁 반복 작업 보조 · sonnet · 일회용', designer: '🎨 디자인 보조 · sonnet · 일회용', 'free-rider': '자칭 PM · 대시보드 전용 캐릭터' };
+const COLOR = { lead: '#ffcf5a', planner: '#7fe0d0', reviewer: '#ffa86b', architect: '#7cc4ff', 'art-director': '#ff9fc4', 'dev-a': '#ff8a6b',
+  'dev-b': '#8fe3a0', 'dev-c': '#ffe08a', researcher: '#d9b38c', prototyper: '#b6ffd0', integrator: '#f2b26b', 'free-rider': '#ffcc33', me: '#ff9fc4' };
+
+let slug = new URLSearchParams(location.search).get('slug');
+let S = null;                 // 마지막 /api/state
+let tab = 'chat', who = null; // 채팅 탭, 사람 필터
+let conv = []; // 💬 대화: 사람 말(user_chat) · 빌더 답(lead_stop) · 모드 바뀜
+const talk = [], shown = new Set(); let chatN = -1, chatPending = 0;
+let logs = [], es = null;
+const PH_KO = { SPEC: '기획', DESIGN: '설계', BUILD: '개발', VERIFY: '검증', PLAN: '계획', WRAPUP: '마무리', DONE: '완료', KICKOFF: '계획', SLICE: '개발', EXPAND: '개발', FINISH: '마무리' };
+const MOOD = { '순조': '😊 순조', '우여곡절': '😅 우여곡절', '힘듦': '😮‍💨 힘듦' };
+let seenR = new Set(), knownR = null;
+
+/* ── 사무실 ── */
+const K = OFFICE({
+  mount: $('officeMount'), external: true,
+  show: (title, sub, html) => openSheet(title, sub, html),
+  openPanel: (name) => openPanel(name),
+  onPerson: id => id === 'lead' ? talkToBuilder() : openPerson(id),
+  onLog: (id, text, t, meta) => addTalk(meta && meta.speaker ? meta : { speaker: id, line: text, t: meta && meta.t || null, local: true }),
+});
+setTimeout(() => K.hint(false), 9000);   // 안내는 처음 잠깐만
+const FACE = {}; for (const id in K.chars) FACE[id] = PK.face(K.chars[id]);
+FACE.me = PK.face({ hair: '#3a2632', shirt: '#ff9fc4', acc: 'tuft' });   // 나 (채팅 프로필)
+/* 사무실 물건 → 실제 기능 */
+const chatBox = () => document.querySelector('.chat');
+const intoView = el => { if (!el) return; const r = el.getBoundingClientRect(); if (r.top < 60 || r.bottom > innerHeight) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+function talkToBuilder() {
+  setTab('chat'); intoView(chatBox()); $('composeTx').focus({ preventScroll: true });
+  K.focus('lead'); K.say('lead', CV.busy ? '하던 거 마저 하고 볼게. 적어 둬!' : CV.alive ? '응, 말해 줘!' : '세션부터 열어 줘 (▶ 세션 시작)', 3200);
+}
+const SCENE_PANEL = {
+  map: () => { setTab('map'); intoView(chatBox()); },
+  chat: () => { setTab('chat'); intoView(chatBox()); },
+  compose: () => talkToBuilder(),
+  preview: () => { reloadPreview(); intoView($('pv')); },
+};
+const nick = id => K.P[id]?.nick || id, emo = id => K.P[id]?.emoji || '💬';
+/* 빌더 + 보조 4종 */
+let RAWP = null;
+const HELPERS = [['scout', '🔎', '조사 보조', '큰 코드·문서·웹에서 답 하나 찾아 요약'], ['checker', '🧪', '검토 보조', '완성 직전 새 눈으로 확인 (M·L 필수)'],
+  ['worker', '🔁', '반복 작업 보조', '작업지시서 한 장씩, 동시에 여러 명'], ['designer', '🎨', '디자인 보조', '레퍼런스와 비교해 바꿀 값 제안']];
+const isHelper = a => a && a.helper;
+function applyMode() {}
+const face = (id, cls = 'av') => FACE[id] ? `<img class="${cls} px" src="${FACE[id]}" alt="">` : `<div class="em">${emo(id)}</div>`;
+
+/* ── 유틸 ── */
+const ts = s => s ? new Date(String(s).replace(' ', 'T')).getTime() : 0;
+function ago(s) { if (!s) return ''; const d = (Date.now() - ts(s)) / 1000; if (d < 45) return '방금'; if (d < 3600) return `${Math.round(d / 60)}분 전`; if (d < 86400) return `${Math.floor(d / 3600)}시간 전`; return String(s).slice(5, 16).replace('T', ' '); }
+function dur(ms) { const m = Math.max(0, Math.round(ms / 60000)); return m < 60 ? `${m}분` : `${Math.floor(m / 60)}시간 ${m % 60}분`; }
+const shortPath = s => String(s || '').replace(/^.*\/projects\/[^/]+\//, '');
+function pretty(t) {
+  let s = esc(String(t || '').replace(/^\s*\[(요청|완료|막힘|반박)\]\s*/, ''));
+  if (slug) s = s.replaceAll(esc(slug) + '/', '');
+  s = s.replace(/\/Users\/[^\s]*?\/projects\//g, '');
+  return s.replace(/((?:[\w.-]+\/)*[\w.-]+\.(?:md|json|js|mjs|html|css|png|glsl))/g, '<code>$1</code>');
+}
+async function j(u, opt) { const r = await fetch(u, Object.assign({ cache: 'no-store' }, opt)); return r.json(); }
+const PV = location.port ? `${location.protocol}//${location.hostname}:${+location.port + 1}` : '';  // 미리보기 전용 출처(포트+1)
+const shotUrl = n => `/shots/${encodeURIComponent(slug)}/${n.split('/').map(encodeURIComponent).join('/')}`;
+const FBST = { new: ['대기', 'st-new', '⏳'], sent: ['전달됨', 'st-sent', '📨'], done: ['반영됨', 'st-done', '✅'] };
+
+/* ── 프로젝트 ── */
+async function loadProjects() {
+  const ps = await j('/api/projects').catch(() => []);
+  if (!slug && ps.length) slug = ps[0].slug;
+  const label = p => `${p.slug} · ${PH_KO[p.phase] || p.phase || '?'}`;
+  const html = ps.map(p => `<option value="${esc(p.slug)}" ${p.slug === slug ? 'selected' : ''}>${esc(label(p))}</option>`).join('') || '<option>프로젝트 없음</option>';
+  if ($('proj').innerHTML !== html) $('proj').innerHTML = html;
+}
+$('proj').onchange = e => { slug = e.target.value; history.replaceState(null, '', `?slug=${slug}`); start(); };
+
+/* ── 상태 그리기 ── */
+function render(st) {
+  S = st; K.applyState(st);
+  renderSizing(st);
+  renderCtl(st);
+  renderCheckpoint(st);
+  const phase = normPh(st.status.phase);
+  $('title').textContent = st.slug; document.title = `${st.slug} · autobuild 공방`;
+  const pl = st.plain || {};
+  // 쉬운 말 번역이 있으면 그걸, 없으면 원문. 원문은 마우스를 올리면 보인다
+  $('summary').textContent = pl.now ? pl.now + (pl.fresh ? '' : ' (업데이트 중…)') : (st.status.summary || '');
+  $('summary').title = st.status.summary || '';
+  const lv = $('live'); lv.className = 'livepill' + (st.running ? ' on' : '');
+  lv.querySelector('span').textContent = st.running ? '실행 중' : phase === 'DONE' ? '완료됨' : '멈춤';
+  const idx = PH.findIndex(p => p[0] === phase);
+  $('phases').innerHTML = PH.map(([k, ko], i) => `<button class="${phase === 'DONE' || (idx >= 0 && i < idx) ? 'done' : ''} ${i === idx && phase !== 'DONE' ? 'cur' : ''}" data-t-map="1">${ko}</button>`).join('');
+  const fbOpen = (st.feedback || []).filter(f => f.status !== 'done').length;
+  $('kpis').innerHTML = [
+    ['budget', '🪙', st.budget?.token_pct != null ? `${st.budget.token_pct}%` : fmtTok(st.budget?.tokens), st.budget?.token_pct != null ? '토큰 예산' : '총 토큰', (st.budget?.token_pct || 0) >= 60 ? 'warn' : ''],
+    ['budget', '⏱', dur((st.budget?.minutes || 0) * 60000), '작업 시간'],
+    ['feedback', '📮', fbOpen, '요청 진행 중', 'req'],
+    ['alerts', '🗑️', (st.alerts || []).length, '주의', (st.alerts || []).some(a => ['guard_deny', 'failure', 'needs_human'].includes(a.ev)) ? 'warn' : ''],
+  ].map(([p, ic, val, l, cls]) => `<button class="kpi ${cls || ''}" data-panel="${p}">${ic} <b>${val}</b><span>${l}</span></button>`).join('');
+  const nl = $('nextline');
+  const rawNext = st.status.next ? st.status.next.replace(/^[-*]\s*/gm, '').split('\n').slice(0, 3).join(' · ') : '';
+  if (pl.next || rawNext) { nl.hidden = false; nl.title = rawNext; nl.innerHTML = `<b>다음 할 일</b>${esc(pl.next || rawNext)}<span style="color:var(--dim);font-size:11px;margin-left:8px">눌러서 자세히</span>`; } else nl.hidden = true;
+  renderShots();
+  handleReports(st.reports);
+  if (curPanel && (AUTO.has(curPanel) || curPanel === 'feedback')) openPanel(curPanel, true);
+  if (tab === 'talk') renderTalk(); else if (tab === 'chat') renderChat();
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-panel]'); if (b) openPanel(b.dataset.panel); });
+$('nextline').onclick = () => openPanel('progress');
+
+/* ── 지금 화면 열기 (라이브, 토큰 0) ── */
+function renderShots() { setPreview(); }
+let toastTimer = 0;
+function toast(html, ms = 5000) { const t = $('toast'); t.innerHTML = html; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), ms); }
+
+const fbRow = f => { const [ko, cls, ic] = FBST[f.status] || FBST.new;
+  return `<div class="row"><span class="${cls}">${ic} ${f.id} · ${ko}</span> <span style="color:#7a6a8f;font-size:11px">${ago(f.t)}</span><br>${esc(f.text)}${f.note ? `<br><span class="st-done">→ ${esc(f.note)}</span>` : ''}</div>`; };
+// ── 규모 등급 고르기 카드 (v0.11) — 고르면 바로 빌드 시작
+let szKey = '', szPick = '';
+function renderSizing(st) {
+  const el = $('sizecard'), c = st.sizing;
+  if (!c) { el.hidden = true; szKey = ''; return; }
+  const key = JSON.stringify(c); if (key === szKey) return; szKey = key; el.hidden = false; szPick = szPick || c.recommend;
+  const mins = m => m == null ? '-' : m >= 90 ? (m / 60).toFixed(1) + '시간' : Math.round(m) + '분';
+  el.innerHTML = `<h3>📐 규모 등급을 골라 주세요 <span style="color:var(--dim);font-weight:400;font-size:12px">· 추천 ${esc(c.recommend)} (${esc(c.by || '')})</span></h3>
+    <p class="q">${esc(c.reason || '')}</p>${c.scope_note ? `<div class="body">범위 메모: ${esc(c.scope_note)}</div>` : ''}
+    <div class="sz-grid">${c.tiers.map(t => `<button data-tier="${t.tier}" class="${t.tier === szPick ? 'on' : ''}">
+      <span class="fit">${esc(t.fit || '')}</span><b>${t.tier === c.recommend ? '★ ' : ''}${t.tier}</b> · ${esc(t.model)}
+      <small>${esc(t.desc)}</small><small>예상 ${fmtTok(t.est_tokens)} 토큰 · ${mins(t.est_minutes)}${t.corrected ? ` <i>(과거 실측 보정 ${esc(t.corrected)})</i>` : ''}</small>
+      <small>토큰 상한 ${fmtTok(t.budget_tokens)}</small><small>${esc(t.steps.join(' → '))}</small></button>`).join('')}</div>
+    <button class="go" id="szGo">이 등급으로 시작</button>`;
+  el.querySelectorAll('.sz-grid button').forEach(b => b.onclick = () => { szPick = b.dataset.tier; el.querySelectorAll('.sz-grid button').forEach(x => x.classList.toggle('on', x === b)); });
+  $('szGo').onclick = async () => {
+    $('szGo').disabled = true; $('szGo').textContent = '시작하는 중…';
+    const r = await fetch('/api/size', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, tier: szPick }) }).catch(() => null);
+    if (!r || !r.ok) { $('szGo').disabled = false; $('szGo').textContent = '다시 시도'; alertBox('시작 못 했어요'); return; }
+    el.innerHTML = `<h3>📐 ${esc(szPick)}로 시작했어요</h3><p class="q">빌더가 곧 일을 시작해요.</p>`;
+  };
+  if (location.hash === '#size') el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// ── 빌더가 사람에게 묻는 카드 (CHECKPOINT.md) — 고르고 메모 쓰고 보내기
+let cpKey = '', cpPick = '';
+function renderCheckpoint(st) {
+  const el = $('checkpoint'), cp = st.checkpoint;
+  if (!cp || cp.status === 'closed') { el.hidden = true; cpKey = ''; return; }
+  const key = `${cp.id}|${cp.mtime}|${cp.answered}`;
+  if (key === cpKey) return;             // 같은 질문이면 다시 그리지 않음(쓰던 메모 유지)
+  cpKey = key; el.hidden = false;
+  const imgs = (cp.shots || []).map(f => `<img src="/shots/${encodeURIComponent(slug)}/${encodeURIComponent(f)}" alt="${esc(f)}" data-full="/shots/${encodeURIComponent(slug)}/${encodeURIComponent(f)}">`).join('');
+  if (cp.answered) {
+    el.innerHTML = `<h3>🙋 ${esc(cp.id)} · 답했어요</h3><p class="q">${esc(cp.question || '')}</p><div class="imgs">${imgs}</div><div class="done">✓ 보냈어요. 빌더가 반영하고 있어요.</div>`;
+  } else {
+    cpPick = cp.default || (cp.options || [])[0] || '';
+    el.innerHTML = `<h3>🙋 빌더가 물어봐요 · ${esc(cp.id)}${cp.wait && cp.wait !== '0' ? ` <span style="color:var(--dim);font-weight:400;font-size:12px">· ${esc(cp.wait)}분 안에 답이 없으면 기본값으로 진행</span>` : ''}</h3>
+      <p class="q">${esc(cp.question || '')}</p>${cp.body ? `<div class="body">${esc(cp.body)}</div>` : ''}<div class="imgs">${imgs}</div>
+      <div class="opts">${(cp.options || []).map(o => `<button data-o="${esc(o)}" class="${o === cpPick ? 'on' : ''}">${esc(o)}${o === cp.default ? '<span class="d">기본</span>' : ''}</button>`).join('')}</div>
+      <textarea id="cpTx" placeholder="덧붙일 말 (선택) — 예: 꼬리를 조금만 덜 흔들어줘"></textarea>
+      <button class="go" id="cpGo">보내기</button>`;
+    el.querySelectorAll('.opts button').forEach(b => b.onclick = () => { cpPick = b.dataset.o; el.querySelectorAll('.opts button').forEach(x => x.classList.toggle('on', x === b)); });
+    $('cpGo').onclick = async () => {
+      const memo = ($('cpTx').value || '').trim();
+      if (!cpPick && !memo) return;
+      $('cpGo').disabled = true;
+      const ok = await sendFeedback(`[${cp.id}] ${cpPick}${memo ? ' — ' + memo : ''}`, (cp.shots || [])[0]);
+      if (!ok) $('cpGo').disabled = false;
+    };
+  }
+  el.querySelectorAll('.imgs img').forEach(i => i.onclick = () => window.open(i.dataset.full, '_blank'));
+  if (location.hash === '#checkpoint' && !cp.answered) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+async function sendFeedback(text, shot, resend) {
+  text = (text || '').trim(); if (!text || !slug) return false;
+  const was = S && S.running;
+  const r = await j('/api/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, text, shot: shot || null, resend: resend || null }) }).catch(e => ({ error: String(e) }));
+  if (r.blocked) {   // v0.30 빌더 화면이 메뉴·한도 화면이라 안 보냄 → 화면을 보여 주고 키로 풀 수 있게
+    BLK = { label: r.blocked.label, screen: r.blocked.screen, text: r.text || text };
+    setTab('chat'); renderChat(true); toast(`<div>⛔ ${esc(r.error)}</div>`, 6000); K.say('lead', '잠깐, 화면에 뭐가 떠 있어', 4000); return false;
+  }
+  if (!r.ok) { toast(`<div>⚠️ 못 보냈어요: ${esc(r.error || '오류')}</div>`); return false; }
+  if (BLK && BLK.text === text) BLK = null;
+  if (!was) toast('<div>▶ 빌더를 깨웠어요. 인계 메모를 읽고 답할 거예요.</div>', 5000);
+  K.sendFx(); K.say('lead', shot ? '그 화면 볼게' : '오케이, 해볼게');
+  pendingMsgs.push({ text, at: Date.now(), id: r.id || null, note: S && S.auto && S.running ? '🤖 수정 요청으로 전달됨' : '보냄 · 빌더가 받는 중' });
+  setTab('chat'); await refresh(); pollConvo(true); return true;
+}
+/* ── v0.41 그림·PDF 붙이기 ── */
+const ATT_HEAD = '[첨부 파일', REMOTE_UP = !!window.AB_REMOTE;
+const UP_MAX = (REMOTE_UP ? 8 : 20) * 1024 * 1024;           // 폰은 Supabase 중계라 작게
+const UP_PART = REMOTE_UP ? 28000 : 900000;                    // base64 글자 수 (4의 배수)
+let ATT = [];
+const isPdf = f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '');
+async function shrinkImg(f) {   // 큰 그림·HEIC 등은 가로세로 2000px JPEG로
+  const url = URL.createObjectURL(f);
+  try {
+    const im = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; });
+    const k = Math.min(1, 2000 / Math.max(im.naturalWidth, im.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+    const b = await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
+    return new File([b], (f.name || 'image').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+  } finally { URL.revokeObjectURL(url); }
+}
+async function addFiles(list) {
+  for (const f0 of [...list]) {
+    try {
+      let f = f0, kind = isPdf(f) ? 'pdf' : /^image\//.test(f.type) ? 'img' : null;
+      if (!kind) { toast(`<div>⚠️ ${esc(f.name)}: 그림과 PDF만 붙일 수 있어요</div>`); continue; }
+      if (kind === 'img' && !(/^image\/(png|jpeg|webp|gif)$/.test(f.type) && f.size <= 1.5 * 1024 * 1024)) {
+        if (f.type === 'image/gif' && f.size <= UP_MAX) { /* 움직이는 gif는 그대로 */ } else f = await shrinkImg(f);
+      }
+      if (f.size > UP_MAX) { toast(`<div>⚠️ ${esc(f.name)}: 너무 커요 (${REMOTE_UP ? '폰에선 8MB' : '20MB'}까지)</div>`); continue; }
+      if (ATT.length >= 8) { toast('<div>⚠️ 한 번에 8개까지 붙일 수 있어요</div>'); break; }
+      ATT.push({ f, kind, url: kind === 'img' ? URL.createObjectURL(f) : '' });
+    } catch { toast(`<div>⚠️ ${esc(f0.name || '그림')}: 이 그림은 읽을 수 없어요</div>`); }
+  }
+  renderAtt();
+}
+function renderAtt() {
+  const el = $('composeAtt'); el.hidden = !ATT.length;
+  el.innerHTML = ATT.map((a, i) => `<span>${a.kind === 'img' ? `<img src="${a.url}" alt="">` : '📄'}<b>${esc(a.f.name)}</b><button type="button" data-attx="${i}" aria-label="빼기">✕</button></span>`).join('');
+}
+function clearAtt() { ATT.forEach(a => a.url && URL.revokeObjectURL(a.url)); ATT = []; renderAtt(); }
+async function uploadOne(a, onPart) {
+  const b64 = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = no; r.readAsDataURL(a.f); });
+  const id = Array.from(crypto.getRandomValues(new Uint8Array(10)), x => x.toString(36).padStart(2, '0')).join('').slice(0, 16);
+  const n = Math.ceil(b64.length / UP_PART), post = body => j('/api/upload', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(Object.assign({ slug, id }, body)) });
+  let next = 0, done = 0;
+  await Promise.all(Array.from({ length: Math.min(4, n) }, async () => {
+    while (next < n) { const seq = next++; const r = await post({ seq, b64: b64.slice(seq * UP_PART, (seq + 1) * UP_PART) }); if (!r.ok) throw new Error(r.error || '올리기 실패'); onPart(++done, n); }
+  }));
+  const r = await post({ done: true, n, name: a.f.name });
+  if (!r.ok) throw new Error(r.error || '올리기 실패');
+  return r;
+}
+async function sendWithAtt(text) {
+  if (!ATT.length) return sendFeedback(text, null);
+  const up = [];
+  try {
+    for (let i = 0; i < ATT.length; i++) {
+      up.push(await uploadOne(ATT[i], (d, n) => toast(`<div>📎 올리는 중 ${i + 1}/${ATT.length}${n > 1 ? ` · ${Math.round(d / n * 100)}%` : ''}</div>`, 60000)));
+    }
+  } catch (e) { toast(`<div>⚠️ 파일을 못 올렸어요: ${esc(e.message || e)}</div>`, 7000); return false; }
+  const block = `${ATT_HEAD} ${up.length}개 — 사람이 대시보드에서 올림. 프로젝트 폴더 기준 경로, Read 도구로 열어 봐]\n` + up.map(r => `- ${r.file} (${r.kind})`).join('\n');
+  const ok = await sendFeedback(`${(text || '').trim() || '붙인 파일 봐 줘'}\n\n${block}`, null);
+  if (ok) clearAtt();
+  return ok;
+}
+$('composeClip').onclick = () => $('composeFile').click();
+$('composeFile').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+$('composeAtt').onclick = e => { const x = e.target.closest('[data-attx]'); if (!x) return; const a = ATT.splice(+x.dataset.attx, 1)[0]; a && a.url && URL.revokeObjectURL(a.url); renderAtt(); };
+$('composeTx').addEventListener('paste', e => { const fs = [...(e.clipboardData?.files || [])]; if (fs.length) { e.preventDefault(); addFiles(fs); } });
+['dragenter', 'dragover'].forEach(t => $('compose').addEventListener(t, e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); $('compose').classList.add('drag'); } }));
+$('compose').addEventListener('dragleave', e => { if (!$('compose').contains(e.relatedTarget)) $('compose').classList.remove('drag'); });
+$('compose').addEventListener('drop', e => { $('compose').classList.remove('drag'); if (e.dataTransfer?.files?.length) { e.preventDefault(); addFiles(e.dataTransfer.files); } });
+document.addEventListener('click', e => { const i = e.target.closest('[data-attfull]'); if (i) window.open(i.dataset.attfull, '_blank'); });
+$('compose').onsubmit = async e => { e.preventDefault(); $('composeGo').disabled = true;
+  if (await sendWithAtt($('composeTx').value)) $('composeTx').value = ''; $('composeGo').disabled = false; };
+$('composeTx').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || !e.shiftKey) && !e.isComposing) { e.preventDefault(); $('compose').requestSubmit(); } };
+
+/* ── 패널 (사무실 위) ── */
+let curPanel = null; const AUTO = new Set(['progress', 'alerts', 'team']);
+function openSheet(title, sub, html, icon = '') {
+  $('shTitle').textContent = title; $('shSub').textContent = sub || ''; $('shBody').innerHTML = html; $('shIcon').innerHTML = icon;
+  $('sheet').classList.add('on'); K.hint(false);
+}
+/* ── v0.35 ➕ 새 프로젝트 ── */
+function openNew() {
+  curPanel = 'new';
+  openSheet('새 프로젝트', '아이디어를 적으면 프로젝트를 만들고 빌더가 계획 단계로 시작해요', `
+    <p style="font-size:12.5px;margin:0 0 4px">무엇을 만들까요? <span style="color:var(--dim)">(한두 줄이면 충분, 자세할수록 좋아요)</span></p>
+    <textarea id="nwIdea" placeholder="예: 실험 데이터를 붙여 넣으면 평균·표준편차·그래프를 그려 주는 도구"></textarea>
+    <p style="font-size:12.5px;margin:10px 0 4px">이름 <span style="color:var(--dim)">(선택 · 영어 소문자·숫자·-, 예: lab-stats. 비우면 자동)</span></p>
+    <input id="nwName" autocapitalize="off" autocomplete="off" spellcheck="false" style="width:100%;box-sizing:border-box;border:2px solid #2b2233;padding:6px 8px;font-size:13px;background:#fff;color:#2b2233">
+    <label style="display:flex;gap:6px;align-items:center;font-size:12.5px;margin:10px 0"><input type="checkbox" id="nwAuto"> 🤖 자동 빌드로 시작 (안 고르면 💬 대화 모드)</label>
+    <button class="go" id="nwGo" style="width:100%">➕ 만들고 시작</button>
+    <p id="nwMsg" style="font-size:12.5px;color:var(--sub)"></p>
+    <p style="color:var(--dim);font-size:11.5px">시작까지 30초쯤 걸려요(규모 등급 추정). 빌더가 뜨면 먼저 개발 개요와 쓰면 좋은 도구를 제안하고 계획 질문을 해요. 💬 대화창이나 Claude 앱의 ab-이름 세션에서 답하면 돼요.</p>`, '➕');
+  setTimeout(() => $('nwIdea') && $('nwIdea').focus(), 50);
+}
+$('newBtn').onclick = openNew;
+document.addEventListener('click', async e => {
+  if (e.target.id !== 'nwGo') return;
+  const idea = $('nwIdea').value.trim(), name = $('nwName').value.trim(), auto = $('nwAuto').checked, msg = $('nwMsg');
+  if (idea.length < 2) { msg.textContent = '아이디어를 적어 주세요'; return; }
+  e.target.disabled = true; msg.textContent = '만드는 중…';
+  const r = await j('/api/new', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ idea, name, auto }) }).catch(ex => ({ error: String(ex) }));
+  if (r.error) { msg.textContent = '⚠️ ' + r.error; e.target.disabled = false; return; }
+  msg.textContent = `✓ ${r.slug} 만드는 중… 빌더가 뜨면 이 프로젝트로 넘어가요`;
+  for (let i = 0; i < 60; i++) {
+    await new Promise(res => setTimeout(res, 3000));
+    const ps = await j('/api/projects').catch(() => []);
+    if (ps.some(p => p.slug === r.slug)) {
+      slug = r.slug; history.replaceState(null, '', `?slug=${slug}`); await loadProjects(); closeSheet(); start();
+      toast(`<div>➕ ${esc(slug)} 시작! 빌더가 개발 개요와 계획 질문을 보내면 💬에서 답해 주세요.</div>`, 8000); return;
+    }
+  }
+  msg.textContent = '아직 안 보여요. 잠시 뒤 위 프로젝트 목록을 확인해 주세요.'; e.target.disabled = false;
+});
+function closeSheet() { $('sheet').classList.remove('on'); curPanel = null; }
+$('shX').onclick = closeSheet;
+function openPanel(name, refresh) {
+  if (SCENE_PANEL[name]) { SCENE_PANEL[name](); return; }
+  if (!S) return; curPanel = name; const keep = refresh ? $('shBody').scrollTop : 0;
+  const P = PANELS[name]; if (!P) return; const [title, sub, html, icon] = P();
+  openSheet(title, sub, html, icon); if (refresh) $('shBody').scrollTop = keep;
+}
+function fmtTok(n) { n = +n || 0; return n >= 1e8 ? (n / 1e8).toFixed(1) + '억' : n >= 1e4 ? Math.round(n / 1e4).toLocaleString() + '만' : String(n); }
+let FEATS = null, PHONE = null;
+function phoneBox() {
+  const remote = !!window.AB_REMOTE;
+  if (remote) return `<h3>📱 이 폰</h3><p id="phSt" style="color:var(--sub);font-size:12.5px">알림 상태 확인 중…</p>
+    <button class="go" id="phPush" style="width:100%">🔔 이 폰에 알림 켜기</button>
+    <p style="color:var(--dim);font-size:11.5px">빌더가 물어보거나(🙋), 등급을 골라야 하거나(📐), 끝나거나 막히면 알려줘요. 아이폰은 홈 화면에 추가한 앱에서만 돼요.</p>
+    <h3>🔗 다른 기기 연결</h3><button class="go" id="phPair" style="width:100%">연결 코드 만들기</button><div id="phCode" style="font:700 30px ui-monospace,Menlo,monospace;letter-spacing:4px;text-align:center;margin:8px 0"></div>`;
+  const p = PHONE || {};
+  return `<h3>📱 폰에서 보기</h3>${p.site ? `<p style="font-size:12.5px">폰 주소: <a href="${esc(p.site)}" target="_blank">${esc(p.site)}</a> · 연결된 기기 ${p.devices ?? '-'}대${p.err ? ` · <span style="color:#ff8b8b">${esc(p.err)}</span>` : ''}</p>` : `<p style="color:var(--sub);font-size:12.5px">${p.configured === false ? '아직 설정 안 됨 (autobuild remote setup)' : '불러오는 중…'}</p>`}
+    <button class="go" id="phPair" style="width:100%" ${p.configured ? '' : 'disabled'}>폰 연결 코드 만들기</button><div id="phCode" style="font:700 30px ui-monospace,Menlo,monospace;letter-spacing:4px;text-align:center;margin:8px 0"></div>`;
+}
+async function loadPhone() { if (window.AB_REMOTE) return; PHONE = await j('/api/remote').catch(() => null); if (curPanel === 'features') openPanel('features', true); }
+document.addEventListener('click', async e => {
+  if (e.target.id === 'phPair') { e.target.disabled = true; const r = await fetch(window.AB_REMOTE ? '/api/pair-code' : '/api/remote/pair', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).then(r => r.json()).catch(() => null);
+    $('phCode').textContent = r && r.code ? r.code.slice(0, 4) + ' ' + r.code.slice(4) : '실패'; if (r && r.code) $('phCode').insertAdjacentHTML('afterend', '<p style="color:var(--sub);font-size:12px;text-align:center">연결할 기기에서 https://sxcrxta.github.io/autobuild/ 를 열고 이 코드를 넣어 주세요 (15분 안에)</p>'); e.target.disabled = false; }
+  if (e.target.id === 'phPush') { e.target.disabled = true; try { await window.abPushEnable(); $('phSt').textContent = '✓ 알림 켜짐 — 맥에서 알림이 오면 여기로 와요'; } catch (ex) { $('phSt').textContent = ex.message; } e.target.disabled = false; }
+});
+async function loadFeats() { const r = await j('/api/features').catch(() => null); if (r) FEATS = r.features; loadPhone();
+  if (curPanel === 'features') { openPanel('features', true); if (window.abPushState) abPushState().then(s => { const el = $('phSt'); if (el) el.textContent = s === 'on' ? '✓ 알림 켜져 있어요' : s === 'unsupported' ? '이 브라우저는 알림이 안 돼요 (아이폰은 홈 화면에 추가한 앱으로)' : '알림 꺼져 있어요'; }); } }
+async function setFeat(key, on) {
+  const r = await fetch('/api/features', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key, on }) }).catch(() => null);
+  if (!r || !r.ok) alertBox('저장 못 했어요'); await loadFeats();
+}
+function alertBox(msg) { const s = $('summary'); if (s) { s.dataset.old = s.dataset.old || s.textContent; s.textContent = msg; setTimeout(() => { s.textContent = s.dataset.old; }, 2500); } }
+document.addEventListener('change', e => { const c = e.target.closest('input[data-feat]'); if (c) setFeat(c.dataset.feat, c.checked); });
+/* ── v0.16 멈춤·재개·새 세션 ── */
+let ctlArm = null, ctlBusy = false;
+function renderUsage(st) {
+  const el = $('usage'), u = st.usage, [warn, stop] = st.usage_at || [80, 90];
+  if (!u) { el.hidden = true; return; }
+  const L = { five_hour: '5시간', seven_day: '주간' }, ks = ['five_hour', 'seven_day'].filter(k => u[k]);
+  const fmt = t => { const d = new Date(t * 1000); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const peak = Math.max(...ks.map(k => u[k].used_percentage)), ago = u.t ? Math.round((Date.now() / 1000 - u.t) / 60) : null;
+  el.hidden = false; el.className = 'livepill usage' + (peak >= stop ? ' bad' : peak >= warn ? ' warn' : '');
+  el.textContent = '⏳ ' + ks.map(k => `${L[k]} ${Math.round(u[k].used_percentage)}%`).join(' · ');
+  el.title = ks.map(k => `${L[k]}: ${u[k].used_percentage.toFixed(0)}% · ${fmt(u[k].resets_at)} 초기화`).join('\n')
+    + `\n${warn}%에 알림, 자동 빌드는 ${stop}%에서 정리하고 멈춰요` + (ago != null ? `\n(${ago < 1 ? '방금' : ago + '분 전'} 빌더 세션에서 읽음)` : '');
+}
+function renderCtl(st) {
+  if (!st) return;
+  renderUsage(st);
+  window.RC_URL = st.rc_url || null;
+  const mb = $('modeBtn'); mb.className = 'mode' + (st.auto ? ' on' : ''); mb.textContent = st.auto ? '🤖 자동 빌드 ON' : '💬 대화 모드';
+  const ms = $('modelSel'); if (document.activeElement !== ms && !ms.disabled) ms.value = st.model || 'default';
+  $('composeLb').textContent = st.auto && st.running ? '🙋 자동 빌드 중 · 수정 요청 (다음 동작 사이에 받아요)' : st.running ? '💬 빌더에게 말하기' : '💬 빌더에게 말하기 (보내면 빌더가 깨어나요)';
+  const done = (st.status.phase || '').toUpperCase() === 'DONE', b = (k, ico, label, cls = '') =>
+    `<button class="tbtn ${cls} ${ctlArm === k ? 'arm' : ''}" data-ctl="${k}" ${ctlBusy ? 'disabled' : ''}>${ico} ${ctlArm === k ? '한 번 더 누르면 ' + label : label}</button>`;
+  const h = st.running ? b('stop', '⏻', '세션 끄기') + b('restart', '🔄', '새 세션') : done || !st.auto ? '' : b('resume', '▶', '재개', 'hi');
+  if ($('ctl').innerHTML !== h) $('ctl').innerHTML = h;
+}
+async function doCtl(action) {
+  if (ctlArm !== action) { ctlArm = action; renderCtl(S); setTimeout(() => { if (ctlArm === action) { ctlArm = null; renderCtl(S); } }, 3500); return; }
+  ctlArm = null; ctlBusy = true; renderCtl(S);
+  const r = await j('/api/control', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, action }) }).catch(e => ({ error: String(e) }));
+  toast(r.error ? `<div>⚠️ ${esc(r.error)}</div>` : `<div>${{ stop: '⏻ 세션을 껐어요. 만든 것과 대화는 그대로예요 — 다시 말하거나 ▶ 세션 시작하면 대화를 이어서 열어요.', resume: '▶ 다시 시작했어요. 인계 메모부터 이어서 해요.', restart: '🔄 새 세션으로 시작했어요 (대화 기록 없이 인계 메모부터).' }[action]}</div>`, 6000);
+  setTimeout(() => { ctlBusy = false; refresh(); }, 2500);
+}
+
+$('modeBtn').onclick = async () => {
+  if (!S) return; const on = !S.auto; $('modeBtn').disabled = true;
+  const r = await j('/api/mode', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, auto: on }) }).catch(e => ({ error: String(e) }));
+  $('modeBtn').disabled = false;
+  toast(r.error ? `<div>⚠️ ${esc(r.error)}</div>` : on ? '<div>🤖 자동 빌드를 켰어요. 빌더가 완성까지 혼자 가고, 물어볼 게 있으면 카드로 물어요.</div>'
+    : '<div>💬 대화 모드로 바꿨어요. 빌더가 지금 단계만 마치고 보고한 뒤 기다려요.</div>', 6000);
+  refresh();
+};
+
+document.addEventListener('click', async e => {
+  const bt = e.target.closest('[data-budget-add]'); if (!bt || !S) return;
+  document.querySelectorAll('[data-budget-add]').forEach(x => x.disabled = true);
+  const r = await j('/api/budget', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, add: +bt.dataset.budgetAdd }) }).catch(e => ({ error: String(e) }));
+  toast(r.error ? `<div>⚠️ ${esc(r.error)}</div>` : `<div>🪙 토큰 예산 ${fmtTok(r.from)} → ${fmtTok(r.to)} (지금 ${r.pct}%)${r.lifted?.length ? ' · 빌더에게 마감 지시 취소를 전했어요' : ''}</div>`, 6000);
+  await refresh(); if (curPanel === 'budget') openPanel('budget', true);
+});
+
+$('modelSel').onchange = async () => {
+  if (!S) return; const ms = $('modelSel'), model = ms.value; ms.disabled = true;
+  const r = await j('/api/model', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, model }) }).catch(e => ({ error: String(e) }));
+  ms.disabled = false; ms.blur();
+  toast(r.error ? `<div>⚠️ ${esc(r.error)}</div>` : `<div>🧠 ${esc(r.note || '모델을 바꿨어요')}</div>`, 6000);
+  refresh();
+};
+
+/* ── v0.16 저장 지점 (CHECKPOINT마다 git 태그) ── */
+let SAVES = null, rbArm = null;
+async function loadSaves() { SAVES = await j(`/api/savepoints?slug=${encodeURIComponent(slug)}`).catch(() => ({ items: [] })); SAVES._s = slug; SAVES._t = Date.now(); if (curPanel === 'saves') openPanel('saves', true); }
+function saveCard(sp) {
+  const cur = sp.commit === SAVES.head, imgs = (sp.files || []).filter(f => /docs\/screenshots\/.+\.(png|jpe?g|webp)$/i.test(f)).slice(-3);
+  const shot = sp.shot ? [`docs/screenshots/${sp.shot}`] : [];
+  const pics = [...new Set([...shot, ...imgs])].slice(0, 3).map(f => `<img src="${PV}/snap/${encodeURIComponent(slug)}/${sp.tag}/${f.split('/').map(encodeURIComponent).join('/')}" alt="" data-fb="/shots/${encodeURIComponent(slug)}/${encodeURIComponent(f.split('/').pop())}" onerror="if(this.dataset.fb&&this.src.indexOf('/snap/')>-1){this.src=this.dataset.fb}else{this.remove()}">`).join('');
+  const logs = (sp.logs || []).slice(0, 5).map(l => `<li>${esc(l.slice(0, 90))}</li>`).join('');
+  const open = sp.entry && !window.AB_REMOTE ? `<a class="tbtn" href="${PV}/snap/${encodeURIComponent(slug)}/${sp.tag}/${sp.entry}" target="_blank" rel="noopener">👀 그때 화면 열기</a>` : '';
+  const rb = cur ? '<span class="sv-now">📍 지금 여기</span>' : `<button class="tbtn ${rbArm === sp.tag ? 'arm' : ''}" data-rb="${esc(sp.tag)}">⏪ ${rbArm === sp.tag ? '정말 되돌릴까요? 한 번 더' : '여기로 되돌리기'}</button>`;
+  const files = (sp.files || []).filter(f => !/^docs\/screenshots\//.test(f));
+  return `<div class="sv ${cur ? 'cur' : ''}"><div class="sv-n">${sp.kind === 'done' ? '🏁' : sp.kind === 'chat' ? '💬' : '#' + sp.n}</div><div class="sv-b">
+    <div class="sv-h"><b>${esc(sp.kind === 'done' ? '완성' : sp.kind === 'chat' ? '대화 ' + (sp.id || '').slice(1) + '번째 답 뒤' : sp.id || '')}</b> <span>${esc((sp.t || '').slice(5, 16).replace('T', ' '))}</span>${sp.phase ? `<span class="chip">${esc((PH.find(p => p[0] === sp.phase) || [, sp.phase])[1])}</span>` : ''}</div>
+    ${sp.question && sp.kind !== 'done' ? `<p class="sv-q">${sp.kind === 'chat' ? '내가 한 말: ' : ''}${esc(sp.question)}</p>` : ''}
+    ${pics ? `<div class="sv-pics">${pics}</div>` : ''}
+    <div class="sv-made"><b>이때까지 만든 것</b> <span>${esc(sp.stat || '')}</span>${logs ? `<ul>${logs}</ul>` : ''}${files.length ? `<div class="sv-files">${files.slice(0, 10).map(f => `<code>${esc(f)}</code>`).join('')}${files.length > 10 ? `<code>외 ${files.length - 10}개</code>` : ''}</div>` : ''}</div>
+    <div class="sv-act">${open}${rb}</div></div></div>`;
+}
+async function doRollback(tag) {
+  if (rbArm !== tag) { rbArm = tag; openPanel('saves', true); setTimeout(() => { if (rbArm === tag) { rbArm = null; if (curPanel === 'saves') openPanel('saves', true); } }, 4000); return; }
+  rbArm = null;
+  const r = await j('/api/rollback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, tag }) }).catch(e => ({ error: String(e) }));
+  toast(r.error ? `<div>⚠️ 되돌리기 실패: ${esc(r.error)}</div>` : `<div>⏪ ${esc(tag)} 시점으로 되돌렸어요. 빌더는 멈춰 있어요. ▶ 재개를 누르면 거기서부터 이어서 해요.<br><small>되돌리기 전 상태는 ${esc(r.backup)} 태그로 남겨 뒀어요.</small></div>`, 12000);
+  await loadSaves(); refresh();
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-ctl]'); if (c) return doCtl(c.dataset.ctl);
+  const rb = e.target.closest('[data-rb]'); if (rb) return doRollback(rb.dataset.rb);
+  const pi = e.target.closest('.sv-pics img'); if (pi) window.open(pi.src, '_blank');
+});
+
+const PANELS = {
+  saves() {
+    if (!SAVES || SAVES._s !== slug) { loadSaves(); return ['저장 지점', '불러오는 중…', '<p>…</p>', '⏪']; }
+    if (Date.now() - SAVES._t > 8000) loadSaves();
+    const it = (SAVES.items || []).slice().reverse();
+    return ['저장 지점', `${it.length}개 · 대화 모드는 빌더 답마다(바뀐 게 있을 때), 자동 빌드는 CHECKPOINT·완성 때 남아요`,
+      (it.length ? it.map(saveCard).join('') : '<p>아직 저장 지점이 없어요. 빌더가 파일을 고치고 답할 때마다(자동 빌드는 CHECKPOINT마다) 그 순간이 저장돼요.</p>')
+      + '<p style="color:var(--dim);font-size:11.5px">되돌리면 빌더를 멈추고 그 시점의 파일로 돌아가요. 그 뒤에 만든 것도 백업 태그로 남겨 두니 영영 사라지진 않아요. 👀는 그때의 앱을 새 탭에서 그대로 열어 봐요(맥에서만).</p>', '⏪'];
+  },
+  budget() {
+    const b = S.budget || {}, bar = (pct) => pct == null ? '' : `<div class="gauge ${pct >= 100 ? 'warn' : ''}"><i style="width:${Math.min(100, pct)}%"></i></div>`;
+    return ['토큰 예산과 작업 시간', `${b.tier ? '등급 ' + b.tier + ' · ' : ''}${b.phase || ''}`,
+      `<p><b>토큰</b> ${fmtTok(b.used)} / ${b.token_budget ? fmtTok(b.token_budget) : '예산 없음'} ${b.token_pct != null ? `(${b.token_pct}%)` : ''}${b.exempt ? ' · 예산 제외 프로젝트' : ''}</p>${bar(b.token_pct)}
+       <p><b>작업 시간</b> ${dur((b.minutes || 0) * 60000)} <span style="color:var(--dim);font-size:11.5px">상한 없음 · 30분 넘게 쉰 시간은 빼고 셈</span></p>
+       ${b.est_tokens || b.est_minutes ? `<p style="color:var(--sub);font-size:12px">처음 추정: 토큰 ${fmtTok(b.est_tokens)} · ${Math.round(b.est_minutes || 0)}분</p>` : ''}
+       ${b.token_budget && !b.exempt ? `<h3>예산 늘리기</h3><div class="btnrow">${[[0.25, '+25%'], [0.5, '+50%'], [1, '2배로']].map(([f, l]) =>
+         `<button data-budget-add="${Math.round(b.token_budget * f)}">${l} <small>(${fmtTok(Math.round(b.token_budget * (1 + f)))})</small></button>`).join('')}</div>
+       <p style="color:var(--dim);font-size:11.5px">늘리면 바로 반영돼요. 이미 빠른 마감·마무리 지시를 받았는데 새 예산으로 60%·100% 아래가 되면 빌더에게 '취소하고 이어서 해'를 전해요.</p>` : ''}
+       <p style="color:var(--dim);font-size:11.5px">자동 빌드에서 토큰이 60%가 되면 빌더가 '다듬기 줄이고 완성 먼저'로 바꾸고, 100%면 마무리해요. 시간은 오래 걸려도 괜찮아요.</p>`, '🪙'];
+  },
+  features() {
+    return ['📱 폰 연결', '폰에서 대화하고 알림 받기', phoneBox(), '📱'];
+  },
+  progress() {
+    const ph = normPh(S.status.phase), first = {}; (S.phases || []).forEach(p => { const k = normPh(p.phase); if (!(k in first)) first[k] = p.t; });
+    const idx = PH.findIndex(p => p[0] === ph);
+    return ['📋 진행 보드', `${ph} · 시작 ${S.started ? ago(S.started) : '-'}`,
+      `${S.plain?.now ? `<p><b>${esc(S.plain.now)}</b></p>` : ''}<p style="color:#7a6a8f;font-size:11.5px">${esc(S.status.summary || '')}</p>` + PH.map(([k, ko], i) => {
+        const cls = ph === 'DONE' || i < idx ? 'done' : i === idx ? 'cur' : '';
+        return `<div class="stp ${cls}"><i></i><div><b>${ko}</b> <span class="chip">${k}</span>${first[k] ? `<div class="m" style="font-size:11px;color:#7a6a8f">${first[k].slice(11, 16)} 시작</div>` : ''}</div></div>`; }).join('')
+      + (S.plain?.next ? `<h3>다음 할 일</h3><p><b>${esc(S.plain.next)}</b></p>` : '')
+      + (S.status.next ? `<h3>${S.plain?.next ? '원문' : '다음 할 일'}</h3><pre style="background:#fff;color:#2b2233;border:2px dashed #d8c8a8">${esc(S.status.next)}</pre>` : '')];
+  },
+  alerts() {
+    const AL = { guard_deny: '🚧 차단', failure: '💥 중단', needs_human: '🙋 사람 필요', keepgoing: '⏰ 빌더 재촉', notify: '🔔 알림', lead_exit: '🚪 빌더 종료', events_error: '⚠️ hook 오류', guard_error: '⚠️ guard 오류' };
+    const al = (S.alerts || []).slice().reverse();
+    return ['🗑️ 주의할 일', `${al.length}건`, al.slice(0, 30).map(e => `<div class="row"><div><b>${AL[e.ev] || e.ev}</b> ${e.agent ? '· ' + esc(e.agent) : ''} <span class="m">${ago(e.t)}</span>
+      <div>${esc(e.title ? e.title + ' — ' : '')}${esc(shortPath(e.reason || e.message || e.error || (e.errors || []).join(' / ') || (e.ev === 'keepgoing' ? `${e.phase} 단계에서 빌더가 멈춰서 재촉` : '')).slice(0, 260))}</div></div></div>`).join('') || '<p>막힌 일 없음 ✨</p>'];
+  },
+  docs() {
+    return ['📚 문서', '프로젝트 폴더의 md 파일', `<div class="btnrow">${(S.docs || []).map(d => `<button data-doc="${esc(d)}">${esc(d.replace('.md', ''))}</button>`).join('')}</div><div id="docView"><p>읽고 싶은 문서를 눌러요.</p></div>`];
+  },
+  feedback() {
+    const fb = (S.feedback || []).slice().reverse();
+    return ['📮 수정 요청함', `${fb.filter(f => f.status !== 'done').length}개 진행 중 · ${fb.filter(f => f.status === 'done').length}개 반영됨`,
+      `<p>자동 빌드 중에 보낸 수정 요청과 CHECKPOINT 답이 여기 쌓여요. 말은 오른쪽 💬 대화에서 보내요.</p>`
+      + (fb.length ? '<h3>보낸 요청</h3>' + fb.map(f => `<div class="row"><div>${f.shot ? `<img src="${shotUrl(f.shot)}" style="width:72px;border:2px solid #2b2233">` : ''}</div><div style="flex:1">${fbRow(f).replace('class="row"', '')}</div></div>`).join('') : '')
+      + `<p class="m" style="font-size:11px;color:#7a6a8f">⏳ 대기 → 📨 빌더에게 전달됨 → ✅ 빌더가 FEEDBACK.md에 반영 표시</p>`];
+  },
+  team() {
+    const ag = S.agents || [], b = ag.find(a => a.name === 'lead') || {};
+    const pic = name => FACE[name] ? `<img src="${FACE[name]}" class="px" style="width:32px;height:32px;border:2px solid #2b2233">` : `<span style="font-size:22px">${emo(name)}</span>`;
+    const row = (name, label, job, st, extra) => `<div class="row" data-person="${esc(name)}" style="cursor:pointer"><div>${pic(name)}</div>
+      <div style="flex:1"><b>${esc(label)}</b> <span class="m">${esc(job)}</span><div class="m">${st}</div>${extra ? `<div class="m" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px">${esc(shortPath(extra))}</div>` : ''}</div></div>`;
+    const on = ag.filter(a => isHelper(a) && a.state === 'working');
+    return ['🛠️ 빌더 + 보조', on.length ? `보조 ${on.length}명 일하는 중` : '빌더 혼자 일하는 중',
+      row('lead', '빌더', JOB.lead, S.running ? '🟢 일하는 중' : '💤 쉬는 중', b.lastAction)
+      + '<h3>부를 수 있는 보조 (일회용)</h3>'
+      + HELPERS.map(([id, e, ko, what]) => { const a = ag.find(x => x.name === id);
+          const st = !a ? `⚪ 안 불림 · ${what}` : a.state === 'working' ? `🟢 일하는 중 · 불림 ${a.calls || 1}번` : `👋 끝내고 감 · 불림 ${a.calls || 0}번 · ${ago(a.last)}`;
+          return row(id === 'worker' ? 'worker-1' : id, `${e} ${ko}`, JOB[id].split(' · ').slice(1).join(' · '), st, a && (a.result || a.task)); }).join('')
+      + '<p class="m" style="font-size:11px;color:#7a6a8f">빌더가 혼자 만들고, 필요할 때만 보조를 불러 요약만 받아요. 보조는 일 하나 하고 바로 가요. 📱 free-rider는 대시보드 연출용 캐릭터예요.</p>'];
+  },
+};
+document.addEventListener('click', async e => {
+  const d = e.target.closest('[data-doc]'); if (d) { const box = $('docView') || $('shBody'); const txt = await (await fetch(`/doc/${slug}/${d.dataset.doc}`)).text();
+    if (!$('docView')) openPanel('docs'); $('docView').innerHTML = `<h3>${esc(d.dataset.doc)}</h3><pre style="background:#fff;color:#2b2233;border:2px dashed #d8c8a8">${esc(txt)}</pre>`; return; }
+  const p = e.target.closest('[data-person]'); if (p) { openPerson(p.dataset.person); K.focus(p.dataset.person); }
+});
+
+/* ── 빌더의 단계 보고 ── */
+function loadSeen() { try { seenR = new Set(JSON.parse(localStorage.getItem('ab-seen-rep-' + slug) || '[]')); } catch { seenR = new Set(); } }
+function saveSeen() { try { localStorage.setItem('ab-seen-rep-' + slug, JSON.stringify([...seenR])); } catch {} }
+function handleReports(R) {
+  const items = (R && R.items) || [], unread = items.filter(x => !seenR.has(x.key));
+  const c = K.C.lead; if (c) c.mark = unread.length ? 1e9 : (c.mark > 1e8 ? 0 : c.mark);
+  if (knownR && items.some(x => !knownR.has(x.key))) {
+    const x = items[items.length - 1], ko = PH_KO[x.phase] || x.phase;
+    toast(`<div>📋 leader: ${ko} 단계 끝! 보고 왔어<br><small>${esc(x.headline)}</small></div><button data-person="lead">보기</button>`, 15000);
+    K.say('lead', `${ko} 단계 끝났어! 나 누르면 짧게 정리해둔 거 볼 수 있어`, 8000);
+  }
+  knownR = new Set(items.map(x => x.key));
+}
+function reportCard(x) {
+  return `<div class="rep ${seenR.has(x.key) ? '' : 'unread'}"><div class="rh"><b>✅ ${PH_KO[x.phase] || x.phase} 단계 끝</b>${x.mood ? `<span class="chip">${MOOD[x.mood] || esc(x.mood)}</span>` : ''}<span class="m">${esc((x.t1 || '').slice(11, 16))}${x.minutes ? ` · ${x.minutes}분 걸림` : ''}</span></div>
+    <div class="hl">${esc(x.headline)}</div>${(x.points || []).length ? `<ul>${x.points.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}</div>`;
+}
+function reportsHtml() {
+  const R = S?.reports || { items: [], pending: 0 }, items = R.items.slice().reverse();
+  const ph = (S?.status.phase || '').toUpperCase();
+  const html = `<h3 style="margin-top:0">📋 빌더의 단계 보고</h3>`
+    + (R.pending ? `<div class="rep"><div class="hl">✏️ 방금 끝난 단계 보고서 쓰는 중… 잠깐만!</div></div>` : '')
+    + (items.length ? items.map(reportCard).join('') : `<p style="color:#7a6a8f">큰 단계(기획→설계→구현→검증→마무리)가 하나 끝날 때마다 여기에 짧게 보고할게!</p>`)
+    + (PH_KO[ph] && ph !== 'DONE' ? `<p style="color:#7a6a8f;font-size:11.5px">지금은 <b>${PH_KO[ph]}</b> 단계 진행 중이야.</p>` : '');
+  R.items.forEach(x => seenR.add(x.key)); saveSeen(); if (K.C.lead) K.C.lead.mark = 0;
+  return html;
+}
+
+/* ── 사람 ── */
+function openPerson(id) {
+  curPanel = null;
+  const p = K.P[id] || {}, a = (S?.agents || []).find(x => x.name === id);
+  const st = id === 'free-rider' ? '📱 소파에서 "진행 상황 공유" 메시지 쓰는 중' : !a ? '이번 빌드에는 아직 안 나왔어요' : { working: '🟢 일하는 중', idle: '💤 대기', gone: '👋 퇴근' }[a.state] || a.state;
+  const mine = talk.filter(l => l.speaker === id).slice(-4).reverse();
+  openSheet(nick(id), `${emo(id)} ${JOB[id] || id}`,
+    `${id === 'lead' ? reportsHtml() + '<h3>성격</h3>' : ''}${p.personality ? `<p>${esc(p.personality)}</p>` : ''}${p.speech ? `<p><span class="tag">말투</span>${esc(p.speech)}</p>` : ''}${p.beef ? `<p><span class="tag">티격태격</span>${esc(p.beef)}</p>` : ''}
+    <div class="live"><b>지금</b> · ${st}${a?.task ? ` · task <code>#${esc(a.task)}</code>` : ''}${a?.lastAction ? `<br>최근: ${esc(shortPath(a.lastAction)).slice(0, 160)}` : ''}${a?.count ? `<br>활동 ${a.count}회 · ${ago(a.last)}` : ''}</div>
+    ${mine.length ? `<h3>최근에 한 말</h3>${mine.map(l => `<div class="row"><div>${pretty(l.line)}</div></div>`).join('')}` : ''}
+    <div class="btnrow"><button data-who="${esc(id)}">💬 채팅에서 ${esc(nick(id))} 말만 보기</button></div>`,
+    FACE[id] ? `<img src="${FACE[id]}" alt="">` : '');
+  if (mine[0]) K.say(id, mine[0].line); else if (id === 'free-rider') K.say(id, '아 네, 저 찾으셨어요? 지금 공유할 거 정리 중이라');
+}
+document.addEventListener('click', e => { const w = e.target.closest('[data-who]'); if (w) { who = w.dataset.who; setTab('talk'); } });
+
+/* ── 채팅 ── */
+const ALIAS = { 'team-lead': 'lead', main: 'lead' };
+const canon = id => { if (!id) return id; if (ALIAS[id]) return ALIAS[id]; for (const k in K.P) if (K.P[k]?.nick === id) return k; return id; };
+function addTalk(l) {
+  l.speaker = canon(l.speaker); l.to = canon(l.to);
+  if (l.n != null) { if (shown.has(l.n)) return; shown.add(l.n); }
+  talk.push(l); if (talk.length > 600) talk.splice(0, talk.length - 600);
+  if (tab === 'talk') renderTalk(); else if (tab === 'chat') renderChat();
+}
+function setTab(t) { tab = t; document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); renderList(true); }
+$('tabs').onclick = e => { const b = e.target.closest('button'); if (b) setTab(b.dataset.t); };
+function renderList(jump) { if (tab === 'chat') renderChat(jump); else if (tab === 'map') renderJourney(jump); else if (tab === 'talk') renderTalk(jump); else renderLog(jump); }
+function keepBottom(fn, jump) { const box = $('list'), at = box.scrollHeight - box.scrollTop - box.clientHeight < 90; fn(box); if (at || jump) box.scrollTop = box.scrollHeight; }
+function renderTalk(jump) {
+  const wf = $('whoFilter'); wf.hidden = !who; if (who) wf.innerHTML = `${FACE[who] ? `<img src="${FACE[who]}" class="px" style="width:18px;height:18px">` : ''} ${esc(nick(who))} 말만 보는 중 <button id="whoX">전체 보기</button>`;
+  // 📝 한 일 = 쉬운 설명(line), 💬 수다 = 캐릭터 한마디(talk) + free-rider 훈수
+  const items = talk.filter(l => (!who || l.speaker === who) && l.kind !== 'aside' && l.line && l.speaker !== 'free-rider')
+    .map(l => ({ k: 'talk', t: l.t, l }));
+  if ((!who || who === 'lead') && S) (S.reports?.items || []).forEach(x => items.push({ k: 'rep', t: x.t1, x }));
+  items.sort((a, b) => ts(a.t) - ts(b.t));
+  $('cTalk').textContent = talk.length || '';
+  keepBottom(box => { box.innerHTML = items.slice(-300).map(it => it.k === 'rep' ? repRow(it.x) : talkRow(it.l)).join('') || '<div class="empty">아직 끝난 일이 없어요.<br>누가 일 하나를 끝내면 여기에 쉬운 말로 한 줄씩 적혀요.</div>'; }, jump);
+  $('typing').hidden = !chatPending; $('typing').textContent = `✏️ 끝난 일 요약 중… ${chatPending}개 남음`;
+}
+function talkRow(l) {
+  const cls = l.kind === 'aside' ? 'aside' : (l.kind && l.kind !== 'message' ? 'event' : '');
+  const to = l.to && l.to !== 'null' && l.to !== '-' ? `→ ${esc(nick(l.to))}` : '';
+  return `<div class="msg ${cls}" data-say="${esc(l.speaker)}" style="--c:${COLOR[l.speaker] || 'var(--ink)'}">${face(l.speaker)}<div style="flex:1;min-width:0">
+    <div class="hd"><b>${esc(nick(l.speaker))}</b><span>${to}</span><span class="t">${esc((l.t || '').slice(11, 16))}</span></div>
+    <div class="tx">${pretty(l.line)}</div>${l.orig ? `<button class="ot" type="button">원문</button><div class="orig">${esc(shortPath(l.orig))}</div>` : ''}</div></div>`;
+}
+function repRow(x) {
+  return `<div class="msg report" data-person="lead" style="--c:${COLOR.lead}">${face('lead')}<div style="flex:1;min-width:0"><div class="hd"><b>${esc(nick('lead'))}</b><span>→ 나</span><span class="t">${esc((x.t1 || '').slice(11, 16))}</span></div>
+    <div class="tx"><b>📋 ${PH_KO[x.phase] || x.phase} 단계 보고</b><br>${esc(x.headline)}<br><small style="color:var(--dim)">눌러서 자세히</small></div></div></div>`;
+}
+$('list').addEventListener('click', e => {
+  if (e.target.id === 'whoX') { who = null; renderTalk(true); return; }
+  if (e.target.classList.contains('ot')) { e.target.closest('.msg').classList.toggle('open'); return; }
+  const m = e.target.closest('[data-say]'); if (!m) return;
+  const id = m.dataset.say; K.focus(id); K.say(id, m.querySelector('.tx').textContent.slice(0, 160));
+});
+document.addEventListener('click', e => { if (e.target.id === 'whoX') { who = null; renderTalk(true); } });
+/* ── v0.23 대화: 빌더 세션 기록을 Claude Code 화면처럼 ── */
+let botKey = null, BLK = null, sendSig = '';
+/* v0.30 막힌 빌더 화면 카드: 화면 글자 + 키 버튼(1·2·3·Enter·Esc) + 다시 보내기 */
+function blkCard() {
+  const KL = { Up: '↑', Down: '↓', Tab: 'Tab ⇥', Space: '␣ 체크', Escape: 'Esc 취소', Enter: 'Enter ⏎' };
+  const k = ['1', '2', '3', 'Up', 'Down', 'Space', 'Tab', 'Enter', 'Escape'].map(x => `<button class="tbtn" data-key="${x}">${KL[x] || x}</button>`).join('');
+  return `<div class="blk"><div class="blk-h">${BLK.label ? `⛔ 빌더 화면: <b>${esc(BLK.label)}</b>` : '🖥️ 빌더 화면'}<button class="rn" data-blkx="1" title="닫기">✕</button></div>
+    <pre>${esc(BLK.screen || '(화면이 비어 있어요)')}</pre>
+    <div class="blk-k"><span>화면에 키 보내기</span>${k}<button class="tbtn" data-scr="1">↻ 다시 보기</button></div>
+    ${BLK.text ? `<div class="blk-s"><span>보내려던 말: ${esc(BLK.text.slice(0, 80))}${BLK.text.length > 80 ? '…' : ''}</span><button class="tbtn hi" data-blksend="1">↻ 다시 보내기</button></div>` : ''}</div>`;
+}
+const post = (u, b) => j(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(Object.assign({ slug }, b)) }).catch(e => ({ error: String(e) }));
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-resend],[data-sdrop],[data-scr],[data-key],[data-blkx],[data-blksend]'); if (!t) return;
+  const d = t.dataset;
+  if (d.resend) { const x = (CV.sends || []).find(s => s.id === d.resend); if (x) { t.disabled = true; await sendFeedback(x.text, null, x.id); } return; }
+  if (d.sdrop) { await post('/api/send-drop', { id: d.sdrop }); CV.sends = (CV.sends || []).filter(s => s.id !== d.sdrop); renderChat(); return; }
+  if (d.blkx) { BLK = null; renderChat(); return; }
+  if (d.blksend) { const tx = BLK.text; t.disabled = true; if (await sendFeedback(tx, null)) { BLK = null; if ($('composeTx').value.trim() === tx) $('composeTx').value = ''; } renderChat(true); return; }
+  if (d.scr) { const r = await j(`/api/screen?slug=${encodeURIComponent(slug)}`).catch(() => null); if (!r) return;
+    BLK = Object.assign({ text: BLK && BLK.text }, r.blocked ? { label: r.blocked.label, screen: r.blocked.screen } : { label: r.alive ? '' : '빌더 세션 없음', screen: r.screen });
+    setTab('chat'); renderChat(true); return; }
+  if (d.key) { t.disabled = true; const r = await post('/api/keys', { key: d.key });
+    if (r.error) { toast(`<div>⚠️ ${esc(r.error)}</div>`); t.disabled = false; return; }
+    BLK = Object.assign({}, BLK, r.blocked ? { label: r.blocked.label, screen: r.blocked.screen } : { label: '', screen: r.screen });
+    if (!r.blocked) toast('<div>✅ 화면이 풀렸어요. 다시 보내면 돼요.</div>', 4000);
+    renderChat(true); }
+});
+let CV = { items: [], busy: false, alive: false, sig: '' }, pendingMsgs = [], openTools = new Set(), pvSlug = null, JR = null, renaming = false, jrPick = null;
+const hm = t => { if (!t) return ''; const d = new Date(t); return isNaN(d) ? String(t).slice(11, 16) : d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }); };
+const TICON = { Read: '📖', Edit: '✏️', Write: '✏️', MultiEdit: '✏️', NotebookEdit: '✏️', Bash: '💻', Grep: '🔍', Glob: '🔍', Agent: '🤝', Task: '🤝', WebFetch: '🌐', WebSearch: '🌐', TodoWrite: '📝', Skill: '📚' };
+const tl = x => `${TICON[x.tool] || '🔧'} ${x.tool}${x.arg ? ' · ' + x.arg : ''}`;
+function meRow(text, t, note, cls = '') {
+  const [body, att] = splitAtt(text);
+  return `<div class="msg me cv ${cls}" style="--c:${COLOR.me}"><img class="av px" src="${FACE.me}" alt=""><div><div class="hd"><b>나</b><span class="t">${note ? esc(note) : hm(t)}</span></div><div class="tx">${esc(body)}</div>${att}</div></div>`;
+}
+/* v0.41 보낸 말 끝의 [첨부 파일 …] 목록 → 그림 미리보기·PDF 이름 */
+function splitAtt(text) {
+  text = String(text || ''); const i = text.indexOf(ATT_HEAD); if (i < 0) return [text, ''];
+  const files = [...text.slice(i).matchAll(/^- docs\/uploads\/([^\s]+)/gm)].map(m => m[1]);
+  const html = files.map(n => /\.pdf$/i.test(n) ? `<span>📄 ${esc(n.replace(/^\d{4}-\d{6}-/, ''))}</span>`
+    : `<img src="/files/${encodeURIComponent(slug)}/${encodeURIComponent(n)}" data-attfull="/files/${encodeURIComponent(slug)}/${encodeURIComponent(n)}" alt="${esc(n)}" onerror="this.remove()">`).join('');
+  return [text.slice(0, i).trim(), html ? `<div class="atts">${html}</div>` : ''];
+}
+function botRow(text, t) {
+  return `<div class="msg lead cv" style="--c:${COLOR.lead}">${face('lead')}<div style="flex:1;min-width:0"><div class="hd"><b>${esc(nick('lead'))}</b><span class="t">${hm(t)}</span></div><div class="tx">${md(text)}</div></div></div>`;
+}
+function toolRow(g, last) {
+  const k = String(g[0].n), errs = g.filter(x => x.err).length;
+  const open = openTools.has(k) || (last && CV.busy);
+  return `<details class="tools" data-k="${k}" ${open ? 'open' : ''}><summary>🔧 ${g.length}개 작업${errs ? ` · ⚠️ ${errs}` : ''} · ${esc(g.slice(-2).map(x => x.arg ? x.arg.split('/').pop() : x.tool).join(', '))}</summary>${g.map(x => `<div class="tl ${x.err ? 'err' : ''}" title="${esc(tl(x))}">${esc(tl(x))}</div>`).join('')}</details>`;
+}
+document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details.tools')) d.open ? openTools.add(d.dataset.k) : openTools.delete(d.dataset.k); }, true);
+function renderChat(jump) {
+  $('whoFilter').hidden = true;
+  const it = CV.items || [], rows = []; let tools = [];
+  $('cChat').textContent = it.filter(i => i.role === 'user').length || '';
+  const flush = last => { if (tools.length) { rows.push(toolRow(tools, last)); tools = []; } };
+  for (const i of it) {
+    if (i.role === 'tool') { tools.push(i); continue; }
+    flush(false);
+    if (i.role === 'user') rows.push(i.canceled ? meRow(i.text, i.t, '↩ 보내기 취소됨 · 입력칸으로 돌려놨어요', 'canceled') : meRow(i.text, i.t));
+    else if (i.role === 'assistant') rows.push(botRow(i.text, i.t));
+    else if (i.role === 'start') rows.push(`<details class="startnote"><summary>📋 세션 시작 지시 · ${hm(i.t)}</summary><div>${esc(i.text)}</div></details>`);
+    else if (i.role === 'session') rows.push(`<div class="sysline">── 새 세션 · ${hm(i.t)} ──</div>`);
+  }
+  flush(true);
+  const SST = { sending: '보냄 · 빌더가 받는 중', queued: '⏳ 빌더가 하던 일 끝나면 받아요' };
+  const sv = CV.sends || [], svIds = new Set(sv.map(x => x.id));
+  pendingMsgs.filter(p => !p.id || !svIds.has(p.id)).forEach(p => rows.push(meRow(p.text, '', p.note, 'pending')));
+  sv.forEach(x => rows.push(x.st === 'lost'
+    ? meRow(x.text, '', `⚠️ 빌더에게 안 닿았어요${x.label ? ' · ' + x.label : ''}`, 'lost') + `<div class="sendact"><button class="tbtn hi" data-resend="${esc(x.id)}">↻ 다시 보내기</button>${x.label ? `<button class="tbtn" data-scr="1">🖥️ 빌더 화면 보기</button>` : ''}<button class="tbtn" data-sdrop="${esc(x.id)}">✕ 지우기</button></div>`
+    : meRow(x.text, '', SST[x.st] || '보냄', 'pending')));
+  if (BLK) rows.push(blkCard());
+  keepBottom(box => { box.innerHTML = rows.join('') || `<div class="empty"><img class="bigface px" src="${FACE.lead}" alt=""><br>Claude Code에 말하듯이 적어 보세요.<br>예: "첫 화면 만들어 줘", "버튼 더 크게"<br><small>빌더가 읽고 고친 것까지 여기에 다 보여요.</small></div>`; }, jump);
+  const lastTool = [...it].reverse().find(i => i.role === 'tool');
+  $('typing').hidden = !CV.busy;
+  renderQuick(it);
+  if (CV.busy) $('typing').innerHTML = `<img class="tav px" src="${FACE.lead}" alt=""><b>빌더가 작업 중</b><i class="dots"><i></i><i></i><i></i></i><span>${lastTool ? esc(tl(lastTool).slice(0, 80)) : ''}</span>`;
+}
+/* ── v0.43 빌더가 'Q1. 질문 / 1) … 2) …'로 물으면 누르는 버튼으로 ── */
+let QK = '', QSEL = {};
+function parseQs(text) {
+  // 질문: 'Q1. …'  선택지: '1) …' '1. …' '(a) …' 'a) …' '- A (추천): …'. Q 없이 번호만 있으면 바로 앞 줄이 물음일 때만.
+  const OPT = [/^\s*(?:[-*]\s*)?\(?(\d{1,2})[.)]\s+(.+)$/, /^\s*(?:[-*]\s*)?\(([A-Ea-e])\)\s*(.+)$/, /^\s*(?:[-*]\s*)?([A-Ea-e])[.)]\s+(.+)$/,
+    /^\s*[-*]\s*([A-E])\s*((?:\(추천\))?)\s*[:：]\s*(.+)$/];
+  const qs = []; let cur = null, prev = '';
+  for (const raw of String(text || '').split('\n')) {
+    const ln = raw.replace(/\*\*/g, '').replace(/`/g, '');
+    if (!ln.trim()) continue;
+    const q = ln.match(/^\s*(?:#+\s*)?Q\s?(\d{1,2})\s*[.):]\s*(.*)$/);
+    if (q) { cur = { k: 'Q' + q[1], q: q[2].trim(), opts: [], multi: /여러\s*개|모두 골|복수|다 골라/.test(q[2]) }; qs.push(cur); prev = ln; continue; }
+    let o = null;
+    for (const re of OPT) { const m = ln.match(re); if (m) { o = { n: m[1], t: (m.length > 3 ? m[3] + (m[2] ? ' ' + m[2] : '') : m[2]).trim() }; break; } }
+    if (o && /^\s{3,}/.test(raw) && cur && cur.opts.length) o = null;   // 들여 쓴 줄은 앞 선택지 설명
+    if (o) {
+      if (!cur) { if (!/[?？]\s*$|골라|고르|선택|어느|어떤|정해/.test(prev)) { prev = ln; continue; } cur = { k: '', q: '', opts: [] }; qs.push(cur); }
+      cur.opts.push(o);
+    } else if (cur && !cur.k && cur.opts.length) cur = null;   // Q 없는 묶음은 선택지가 끊기면 끝
+    prev = ln;
+  }
+  return qs.filter(q => q.opts.length >= 2 && q.opts.length <= 9);
+}
+function renderQuick(it) {
+  const el = $('quick'); const last = [...it].reverse().find(i => i.role === 'user' || i.role === 'assistant');
+  const qs = !CV.busy && last && last.role === 'assistant' ? parseQs(last.text) : [];
+  const key = qs.length ? last.t + '|' + last.text.length : '';
+  if (key !== QK) { QK = key; QSEL = {}; }
+  el.hidden = !qs.length; if (!qs.length) { el.innerHTML = ''; return; }
+  const rec = qs.some(q => q.opts.some(o => /추천/.test(o.t)));
+  el.innerHTML = (rec ? `<div class="qrow"><button type="button" data-qrec="1">⭐ 전부 추천대로</button></div>` : '') + qs.map((q, qi) => `<div class="qrow">${q.k || q.q ? `<span class="qn">${esc(q.k)}${q.k ? '. ' : ''}${esc(q.q)}${q.multi ? ' · 여러 개 ✓' : ''}</span>` : ''}${q.opts.map(o =>
+    `<button type="button" class="${(QSEL[qi] || []).includes(o.n) ? 'on' : ''}" data-qi="${qi}" data-qo="${esc(o.n)}" title="${esc(o.t)}"><b>${esc(o.n)}</b> <i>${esc(o.t.slice(0, 28))}${o.t.length > 28 ? '…' : ''}</i></button>`).join('')}</div>`).join('');
+  el._qs = qs;
+}
+$('quick').onclick = e => {
+  const qs = $('quick')._qs || [];
+  if (e.target.closest('[data-qrec]')) qs.forEach((q, i) => { const r = q.opts.filter(o => /추천/.test(o.t)).map(o => o.n); if (r.length) QSEL[i] = q.multi ? r : r.slice(0, 1); });
+  else {
+    const b = e.target.closest('[data-qi]'); if (!b || !qs[+b.dataset.qi]) return; const qi = +b.dataset.qi, n = b.dataset.qo, cur = QSEL[qi] || [];
+    QSEL[qi] = cur.includes(n) ? cur.filter(x => x !== n) : qs[qi].multi ? [...cur, n].sort() : [n];
+  }
+  const ans = qs.map((x, i) => (QSEL[i] || []).length ? `${x.k ? x.k + '. ' : ''}${QSEL[i].join(', ')}` : null).filter(Boolean);
+  const tx = $('composeTx'), extra = tx.value.split('\n').filter(l => !/^(Q\d{1,2}\. [0-9A-Ea-e, ]+|[0-9A-Ea-e]{1,2}(, [0-9A-Ea-e]{1,2})*)$/.test(l.trim())).join('\n').trim();
+  tx.value = ans.join('\n') + (extra ? '\n' + extra : '');
+  renderQuick(CV.items || []);
+};
+function renderSess() {
+  const el = $('sess'), bt = $('sessBtns'); if (!slug) { el.innerHTML = bt.innerHTML = ''; return; }
+  const a = CV.alive, b = CV.busy;
+  if (renaming) return;
+  const nmHtml = CV.sid ? `<span class="sname" title="${a ? '지금 세션' : '마지막 세션'} 이름 (기능 하나 = 세션 하나)">📁 <span class="nm">${esc(CV.name || '이름 없는 세션')}</span><button class="rn" data-rename="${esc(CV.sid)}" data-cur="${esc(CV.named ? CV.name : '')}" title="세션 이름 바꾸기">✏️</button></span>` : '';
+  const h = `<span class="dot ${a ? (b ? 'busy' : 'on') : ''}"></span><b>${a ? (b ? '빌더 작업 중' : '연결됨 · 말을 기다려요') : CV.session ? '세션 끝남' : '세션 없음'}</b>${nmHtml}`
+    + (a && CV.ctx ? `<span class="ctx ${CV.ctx >= CV.ctx_hint ? 'warn' : ''}" title="빌더가 한 번 답할 때마다 다시 읽는 대화 길이${CV.ctx >= CV.ctx_hint ? ' · 길어졌어요. 기능이 끝났으면 새 세션 추천' : ''}">📏 ${(CV.ctx / 10000).toFixed(1)}만${CV.ctx >= CV.ctx_hint ? ' ⚠️' : ''}</span>` : '');
+  const rc = a && window.RC_URL ? `<a class="tbtn hi" href="${esc(window.RC_URL)}" target="_blank" rel="noopener" title="Remote Control: Claude 앱·claude.ai/code에서 이 빌더 세션과 Claude Code 그대로 대화해요">📱 Claude 앱에서 열기</a>` : '';
+  const hb = rc + (a ? (b ? '<button class="tbtn" data-sess="interrupt" title="Claude Code의 Esc처럼 지금 답만 멈춰요(방금 보낸 말은 취소돼 입력칸으로 돌아와요). 세션은 그대로">⏹ 답 멈추기</button>' : '')
+      + `<button class="tbtn ${CV.ctx >= CV.ctx_hint ? 'hi' : ''}" data-sess="handoff" title="빌더가 인계 메모를 쓰고 커밋한 뒤 새 세션으로 바꿔요. 토큰이 가벼워져요">✅ 기능 끝 → 새 세션</button>`
+      + '<button class="tbtn" data-sess="restart" title="인계 메모 없이 바로 새 세션 (막혔을 때)">🔄</button>'
+      : '<button class="tbtn hi" data-sess="resume">▶ 세션 시작</button>');
+  if (el.innerHTML !== h) el.innerHTML = h;
+  if (bt.innerHTML !== hb) bt.innerHTML = hb;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-sess]'); if (!b) return;
+  const action = b.dataset.sess;
+  if (action === 'restart' && b.dataset.arm !== '1') { b.dataset.arm = '1'; b.textContent = '한 번 더 누르면 바로 새 세션'; setTimeout(() => renderSess(), 3500); return; }
+  b.disabled = true;
+  const r = await j('/api/control', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, action }) }).catch(x => ({ error: String(x) }));
+  if (action === 'interrupt' && r.restored) {
+    const tx = $('composeTx'); if (!tx.value.trim()) { tx.value = r.restored; tx.focus(); }
+    toast('<div>↩ 보내기를 취소했어요. 보낸 말은 아래 입력칸으로 돌려놨어요 — 고쳐서 다시 보내면 돼요.</div>', 6000);
+    setTimeout(() => pollConvo(true), 800); return;
+  }
+  toast(r.error ? `<div>⚠️ ${esc(r.error)}</div>` : `<div>${{ resume: '▶ 세션을 열었어요. 이전 대화를 이어서 열고, 빌더가 어디까지 했는지 알려 줘요.', restart: '🔄 새 세션으로 열었어요 (대화 기록 없이 인계 메모부터).', handoff: '✅ 빌더가 인계 메모를 쓰고 커밋하면 자동으로 새 세션으로 바뀌어요.', interrupt: '⏹ 하던 일을 멈췄어요. 이어서 말하면 돼요.' }[action] || r.note || '완료'}</div>`, 5000);
+  setTimeout(() => pollConvo(true), 1500); setTimeout(() => pollConvo(true), 6000);
+});
+async function pollConvo(force) {
+  if (!slug) return;
+  const d = await j(`/api/convo?slug=${encodeURIComponent(slug)}`).catch(() => null);
+  if (!d || !d.items) return;
+  const wasBusy = CV.busy, changed = force || d.sig !== CV.sig || d.busy !== CV.busy || d.alive !== CV.alive;
+  CV = d;
+  const users = d.items.filter(i => i.role === 'user').slice(-12).map(i => i.text.replace(/\s+/g, ' ').trim());
+  const n0 = pendingMsgs.length, svSig = JSON.stringify((d.sends || []).map(x => [x.id, x.st])), svIds = new Set((d.sends || []).map(x => x.id));
+  // 추적되는 말(id 있음)은 서버 목록에서 빠지면 닿은 것. 추적 안 되는 말(세션 시작·자동 빌드)은 기록에 보이거나 4분 지나면 정리
+  pendingMsgs = pendingMsgs.filter(p => { const k = p.text.replace(/\s+/g, ' ').trim().slice(0, 120); if (users.some(u => u.includes(k))) return false;
+    return p.id ? (svIds.has(p.id) || Date.now() - p.at < 15000) : Date.now() - p.at < 240000; });
+  if (changed || n0 !== pendingMsgs.length || svSig !== sendSig) { sendSig = svSig; renderSess(); if (tab === 'chat') renderChat(); }
+  K.setConvo({ alive: !!d.alive, busy: !!d.busy, pending: pendingMsgs.filter(p => !p.id || !svIds.has(p.id)).length + (d.sends || []).filter(x => x.st !== 'lost').length });
+  // 빌더가 새로 답하면 사무실 빌더가 그 첫 문장을 말풍선으로
+  const lastBot = [...d.items].reverse().find(i => i.role === 'assistant');
+  const bk = lastBot ? `${lastBot.t}|${lastBot.text.length}` : '';
+  if (botKey === null) botKey = bk;
+  else if (bk && bk !== botKey && !d.busy) { const line = lastBot.text.replace(/[`*#>|]/g, '').split(/\n+/).map(x => x.trim()).find(x => x.length > 1) || ''; if (line) { K.focus('lead'); K.say('lead', line.length > 70 ? line.slice(0, 68) + '…' : line, 8000); } }
+  if (bk && !d.busy) botKey = bk;
+  if (changed && d.sig !== (JR && JR._sig)) loadJourney(d.sig);
+  if (wasBusy && !d.busy) reloadPreview();  // 빌더가 답을 마치면 미리보기 새로고침
+}
+/* ── v0.25 🗺️ 진행: 단계(누가 이끄나) + 세션(기능) 카드 ── */
+const PH_COL = { PLAN: '#7cc4ff', BUILD: '#ffcf5a', VERIFY: '#7fe0d0', FINISH: '#ff9fc4', DONE: '#9ff3bd' };
+const PH_HINT = { PLAN: '빌더의 질문에 답하며 계획 세우기', BUILD: '기능 하나씩 만들기', VERIFY: '빌더가 검사하고 문제 보고', FINISH: '정리하고 마무리', DONE: '완성' };
+async function loadJourney(sig) {
+  if (!slug) return;
+  const d = await j(`/api/journey?slug=${encodeURIComponent(slug)}`).catch(() => null);
+  if (!d || !d.sessions) return;
+  JR = d; JR._sig = sig || (CV && CV.sig);
+  const per = {}; d.sessions.forEach(x => x.phases.forEach(ph => { per[ph] = (per[ph] || 0) + 1; }));
+  K.setConvo({ perPhase: per }); if (S) K.applyState(S);
+  $('cMap').textContent = d.sessions.length || '';
+  if (tab === 'map') renderJourney();
+}
+const hhmm = t => String(t || '').slice(11, 16), md5 = t => String(t || '').slice(5, 10).replace('-', '/');
+function renderJourney(jump) {
+  $('whoFilter').hidden = true; $('typing').hidden = true;
+  if (renaming) return;
+  if (!JR) { $('list').innerHTML = '<div class="empty">불러오는 중…</div>'; loadJourney(); return; }
+  const cur = JR.phase === 'DONE' ? 'DONE' : JR.phase, ci = PH.findIndex(p => p[0] === cur);
+  const per = {}; JR.sessions.forEach(x => x.phases.forEach(ph => { per[ph] = (per[ph] || 0) + 1; }));
+  const lastWith = [...PH].reverse().map(p => p[0]).find(k => per[k] && k !== 'DONE') || 'PLAN';
+  const pick = jrPick || (cur === 'DONE' ? lastWith : cur);
+  const steps = PH.filter(p => p[0] !== 'DONE').map(([k, ko], i) => {
+    const st = cur === 'DONE' || i < ci ? 'done' : i === ci ? 'cur' : '';
+    return `<div class="jp ${st} ${k === pick ? 'pick' : ''}" data-jp="${k}" style="--pc:${PH_COL[k]}"><div class="ic">${st === 'done' ? '✓' : PH_IC[k]}</div><b>${ko}</b><span class="n">${per[k] ? `세션 ${per[k]}` : ''}</span></div>`;
+  }).join('');
+  const cards = JR.sessions.map((x, i) => [x, i]).filter(([x]) => x.phases.includes(pick)).map(([x, i]) => {
+    const mins = Math.max(1, Math.round((new Date(x.t1) - new Date(x.t0)) / 60000));
+    return `<div class="sc ${x.now ? 'now' : ''}" style="--pc:${PH_COL[x.phases[x.phases.length - 1]] || 'var(--line)'}">
+      <div class="sc-h"><span class="sc-k">#${i + 1}</span><span class="nm">${esc(x.name)}</span><button class="rn" data-rename="${esc(x.sid)}" data-cur="${esc(x.named ? x.name : '')}" title="이름 바꾸기">✏️</button>${x.now ? '<span class="sc-now">● 지금</span>' : ''}</div>
+      <div class="sc-m">${md5(x.t0)} ${hhmm(x.t0)}–${hhmm(x.t1)} · ${dur(mins * 60000)} ${x.phases.map(ph => `<span class="sc-ph" style="--pc:${PH_COL[ph] || 'var(--line)'}">${PH_IC[ph] || ''} ${PH_KO[ph] || ph}</span>`).join('')}</div>
+      ${x.summary ? `<ul class="sc-s">${x.summary.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : `<div class="sc-w">${x.now ? '작업이 끝나면 요약이 생겨요' : '요약 만드는 중…'}</div>`}
+      ${x.files.length ? `<div class="sc-f">${x.files.map(f => `<code>${esc(f)}</code>`).join('')}${x.nfiles > x.files.length ? `<code>+${x.nfiles - x.files.length}</code>` : ''}</div>` : ''}
+    </div>`;
+  }).join('');
+  keepBottom(box => { box.innerHTML = `<div class="jr"><div class="jr-ph">${steps}</div>
+    <p class="jr-hint">${PH_IC[cur] || ''} <b>${PH_KO[cur] || cur}</b> · ${esc(PH_HINT[cur] || '')}</p>
+    ${JR.auto ? '<p class="jr-hint">🤖 자동 빌드 중이라 빌더가 자체 절차로 진행해요.</p>' : ''}
+    <div class="jr-t">${PH_IC[pick] || ''} ${PH_KO[pick] || pick} 단계의 세션 (기능 하나 = 세션 하나)</div>${cards || `<div class="empty">${PH_KO[pick] || pick} 단계 세션이 아직 없어요.</div>`}</div>`; }, jump);
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-t-map]')) { setTab('map'); return; }
+  const jp = e.target.closest('[data-jp]'); if (jp) { jrPick = jp.dataset.jp; renderJourney(); return; }
+  const b = e.target.closest('[data-rename]'); if (!b) return;
+  renaming = true;
+  const holder = b.parentElement, nm = holder.querySelector('.nm');
+  nm.outerHTML = `<input class="rnin" maxlength="60" placeholder="예: 로그인 화면" value="${esc(b.dataset.cur || '')}">`;
+  b.hidden = true;
+  const inp = holder.querySelector('.rnin'); inp.focus(); inp.select();
+  const done = async save => {
+    if (!renaming) return; renaming = false;
+    if (save) { await j('/api/session-name', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, sid: b.dataset.rename, name: inp.value }) }).catch(() => null); }
+    await pollConvo(true); await loadJourney(); renderSess(); if (tab === 'map') renderJourney();
+  };
+  inp.onkeydown = ev => { if (ev.key === 'Enter' && !ev.isComposing) { ev.preventDefault(); done(true); } else if (ev.key === 'Escape') done(false); };
+  inp.onblur = () => done(true);
+});
+function setPreview() {
+  const pv = $('pv'); if (!slug) return;
+  const remote = !!window.AB_REMOTE; pv.classList.toggle('remote', remote); $('pvEmpty').hidden = !remote;
+  if (remote || pvSlug === slug) return;
+  pvSlug = slug; const u = `${PV}/live/${encodeURIComponent(slug)}/`; $('pvOpen').href = u; $('pvFrame').src = u;
+}
+function reloadPreview() { if (window.AB_REMOTE || !slug) return; const u = `${PV}/live/${encodeURIComponent(slug)}/`; $('pvFrame').src = 'about:blank'; setTimeout(() => { $('pvFrame').src = u; }, 50); }
+$('pvReload').onclick = reloadPreview;
+function md(t) {  // 빌더 글의 가벼운 마크다운: ```코드```, **굵게**, `코드`, # 제목
+  const s = String(t || '').replace(/\/Users\/[^\s]*?\/projects\/[\w.-]+\//g, '');
+  const inl = x => esc(x).replace(/`([^`\n]+)`/g, '<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>').replace(/^#{1,4}\s+(.+)$/gm, '<b>$1</b>');
+  const cells = l => l.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+  const text = p => p.replace(/(^|\n)((?:\|[^\n]*\|[ \t]*(?:\n|$))+)/g, (m, pre, blk) => {  // 마크다운 표 → <table>
+    const rows = blk.trim().split('\n').filter(l => !/^\|[\s:|-]+\|$/.test(l.trim()));
+    return `${pre}\u0000T${rows.map((l, i) => `<tr>${cells(l).map(c => `<${i ? 'td' : 'th'}>${inl(c)}</${i ? 'td' : 'th'}>`).join('')}</tr>`).join('')}\u0000E`;
+  });
+  return s.split(/```[\w+-]*\n?/).map((p, k) => k % 2 ? `<pre class="cb">${esc(p.replace(/\n$/, ''))}</pre>`
+    : text(p).split(/\u0000T|\u0000E/).map((q, i) => i % 2 ? `<div class="tb"><table>${q}</table></div>` : inl(q)).join('')).join('');
+}
+function logRow(e) {
+  let cls = '', b = '';
+  switch (e.ev) {
+    case 'tool': b = `${e.tool} · ${shortPath(e.detail)}`; break;
+    case 'guard_deny': b = `차단 · ${e.reason}`; cls = 'bad'; break;
+    case 'phase': b = `단계 → ${e.phase}`; cls = 'ok'; break;
+    case 'spawn': b = e.type && HELPERS.some(h => h[0] === e.type) ? `${HELPERS.find(h => h[0] === e.type)[1]} 보조 부름 · ${e.desc || ''}` : `보조 부름 · ${e.type || ''}`; cls = 'ok'; break;
+    case 'user_chat': b = `💬 사람 · ${e.text}`; cls = 'warn'; break;
+    case 'mode': b = e.auto ? '🤖 자동 빌드 켬' : '💬 대화 모드'; cls = 'ok'; break;
+    case 'keepgoing': b = `빌더 재촉 (${e.phase})`; cls = 'warn'; break;
+    case 'notify': b = `알림 · ${e.title}`; cls = 'warn'; break;
+    case 'user_feedback': b = `🙋 사람 요청 ${e.id} · ${e.text}`; cls = 'warn'; break;
+    case 'feedback_sent': b = `📨 빌더에게 전달 ${(e.ids || []).join(', ')}`; cls = 'ok'; break;
+    default: return null;
+  }
+  return `<div><span>${esc((e.t || '').slice(11, 19))}</span><span class="w">${esc(e.agent || (e.ev.startsWith('user') || e.ev.startsWith('feedback') ? '사람' : ''))}</span><span class="x ${cls}" title="${esc(b)}">${esc(b)}</span></div>`;
+}
+function renderLog(jump) { $('whoFilter').hidden = true; $('typing').hidden = true; keepBottom(box => { box.innerHTML = `<div class="log">${logs.slice(-500).join('')}</div>` || ''; }, jump); }
+function onEvent(e) {
+  if (e.ev === 'user_chat' || e.ev === 'mode' || (e.ev === 'lead_stop' && (e.last || '').trim())) { conv.push(e); if (conv.length > 400) conv = conv.slice(-300); }
+  const row = logRow(e); if (row) logs.push(row);
+  if (logs.length > 1200) logs = logs.slice(-800);
+}
+function counts() { $('cLog').textContent = logs.length || ''; }
+
+async function pollChat(first) {
+  if (!slug) return;
+  const r = await j(`/api/chatter?slug=${encodeURIComponent(slug)}&after=${chatN}`).catch(() => null); if (!r) return;
+  if (first && r.personas) K.setPersonas(r.personas);
+  chatPending = r.pending || 0;
+  const lines = r.lines || [];
+  if (lines.length) {
+    chatN = lines[lines.length - 1].n;
+    lines.forEach(l => { l.speaker = canon(l.speaker); l.to = canon(l.to); });
+    const live = lines.filter(l => l.speaker !== 'free-rider');
+    if (first) { lines.slice(0, -2).forEach(addTalk); K.enqueue(live.slice(-2), false); }
+    else K.enqueue(live, false);
+  }
+  if (tab === 'talk') renderTalk(first);
+}
+
+/* ── 시작 ── */
+let timer = 0, chatTimer = 0, convoTimer = 0, pend = false;
+async function refresh() { if (!slug) return; const st = await j(`/api/state?slug=${encodeURIComponent(slug)}`).catch(() => null); if (st && st.status) render(st); }
+function soon() { if (pend) return; pend = true; setTimeout(() => { pend = false; refresh(); }, 500); }
+async function start() {
+  if (es) es.close(); clearInterval(timer); clearInterval(chatTimer); clearInterval(convoTimer);
+  talk.length = 0; shown.clear(); chatN = -1; conv = []; logs = []; who = null; closeSheet(); JR = null; renaming = false; jrPick = null; CV = { items: [], busy: false, alive: false, sig: '' }; pendingMsgs = []; botKey = null; BLK = null; sendSig = ''; openTools.clear(); renderSess();
+  knownR = null; loadSeen();
+  if (!slug) return;
+  await refresh();
+  try { RAWP = await j('/personas.json'); K.setPersonas(RAWP); } catch {}
+  await pollChat(true); await pollConvo(true); loadJourney();
+  const { events } = await j(`/api/events?slug=${encodeURIComponent(slug)}&limit=3000`).catch(() => ({ events: [] }));
+  events.forEach(onEvent); counts(); renderList(true);
+  es = new EventSource(`/stream?slug=${encodeURIComponent(slug)}`);
+  es.onmessage = m => { const e = JSON.parse(m.data); onEvent(e); counts(); if (tab !== 'talk') renderList();
+    if (['phase', 'spawn', 'working', 'guard_deny', 'keepgoing', 'notify', 'user_feedback', 'feedback_sent', 'agent_stop', 'user_chat', 'lead_stop', 'lead_wake', 'mode', 'launch', 'lead_exit'].includes(e.ev) || /\.png/.test(e.detail || '')) soon(); };
+  timer = setInterval(refresh, 6000); chatTimer = setInterval(() => pollChat(false), 3000); convoTimer = setInterval(() => pollConvo(false), 2500);
+}
+setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }); }, 1000);
+addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+loadProjects().then(start); setInterval(loadProjects, 20000);
+</script>
+</body>
+</html>

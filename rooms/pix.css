@@ -1,0 +1,16 @@
+/* 저해상도 픽셀 스타일들이 같이 쓰는 보드/글씨 오버레이 */
+.pb{display:grid;grid-template-columns:repeat(5,1fr);gap:2%;padding:5% 3%;height:100%}
+.pb .col{display:flex;flex-direction:column;align-items:center;gap:7%;font-size:calc(var(--s)*3.3px);color:var(--pb-ink,#3a3150)}
+.pb .col span{padding:0 1px;white-space:nowrap}
+.pb .col.cur span{background:var(--pb-cur,#ff6b6b);color:#fff}
+.pb .col.done span{text-decoration:line-through;opacity:.55}
+.pb .note{width:72%;height:calc(var(--s)*3.5px);background:#ffe27a}
+.pb .note.p{background:#ffb3c7}.pb .note.b{background:#9fe0ff}
+.pb.chalk{--pb-ink:#f4f1e6;--pb-cur:#ff7fa8}
+.pb.chalk .note{background:none;border:calc(var(--s)*.6px) solid rgba(244,241,230,.75)}
+.pb.holo{--pb-ink:#8ff7ff;--pb-cur:#ff4fd8}
+.pb.holo .note{background:rgba(120,240,255,.4)}
+.pb.wood{--pb-ink:#3a2418;--pb-cur:#d8463a}
+.pb.wood .note{background:#f4e2b8}
+.ptext{display:flex;align-items:center;justify-content:center;height:100%;font-size:calc(var(--s)*3.4px);white-space:nowrap}
+#hint{top:auto;bottom:2%}
